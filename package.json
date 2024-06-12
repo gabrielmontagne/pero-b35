@@ -2,9 +2,14 @@
   "name": "@tibas/pero",
   "version": "0.0.1",
   "description": "thin wraper on openai apis for cli comfort",
-  "main": "index.js",
+  "main": "dist/index.js",
   "scripts": {
+    "build": "tsc",
+    "start": "ts-node src/index.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "bin": {
+    "pero": "dist/index.js"
   },
   "author": "",
   "license": "ISC",
