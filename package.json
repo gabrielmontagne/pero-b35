@@ -1,0 +1,16 @@
+{
+  "name": "@tibas/pero",
+  "version": "0.0.1",
+  "description": "thin wraper on openai apis for cli comfort",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^20.14.2",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.5"
+  }
+}
