@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 export function main() {
-    console.log("Uryyb Jbeyq!");
+    console.log("uryyb JBEYQ!");
 }
 
 if (require.main === module) {
