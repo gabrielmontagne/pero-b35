@@ -39,6 +39,18 @@ export function main() {
             console.log("conversation", conversation);
             const openai = new OpenAI()
             console.log("openai", openai)
+
+            openai.chat.completions.create(
+              {
+                model: 'gpt-4o',
+                messages: [
+                  { role: 'user', content: conversation }
+                ]
+              }
+            ).then(
+              res => console.log(res.choices[0].message.content)
+            )
+
           });
         }
       ).parse()
