@@ -1,4 +1,20 @@
 = Pero-B35
 
-`pero` cli.
+== `pero chat` cli.
 
+have your `.env` file on the root of the project.
+
+```
+OPENAI_API_KEY=sk-################################################
+```
+
+```
+pero chat
+
+chat endpoints
+
+Options:
+      --help     Show help                                             [boolean]
+      --version  Show version number                                   [boolean]
+  -f, --file     file to read from                                      [string]
+```

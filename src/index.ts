@@ -3,6 +3,13 @@
 import { parseConversation } from "./parse";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
+import { resolve } from "path";
+import { config } from "dotenv";
+import OpenAI from "openai";
+
+console.log(__dirname)
+const envPath = resolve(__dirname, '..', '.env');
+config({ path: envPath });
 
 export function main() {
   console.log(
@@ -30,6 +37,8 @@ export function main() {
             console.log("content", content);
             const conversation = parseConversation(content);
             console.log("conversation", conversation);
+            const openai = new OpenAI()
+            console.log("openai", openai)
           });
         }
       ).parse()
