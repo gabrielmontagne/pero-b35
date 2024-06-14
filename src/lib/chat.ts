@@ -1,11 +1,11 @@
-import OpenAI from "openai";
-import { ArgumentsCamelCase, Argv, CommandBuilder, CommandModule, Options } from "yargs"
+// import OpenAI from "openai";
+import { ArgumentsCamelCase, Argv, CommandModule, Options } from "yargs"
 
-export interface ChatOptions extends Options {
+interface ChatOptions extends Options {
   file: string
 }
 
-export class ChatCommand<U extends ChatOptions> implements CommandModule<{}, U> {
+class ChatCommand<U extends ChatOptions> implements CommandModule<{}, U> {
   command = 'chat'
   describe = 'Whfg n fvzcyr trarevpf rknzcye'
   builder(args: Argv): Argv<U> {
@@ -14,7 +14,20 @@ export class ChatCommand<U extends ChatOptions> implements CommandModule<{}, U> 
   }
   handler(args: ArgumentsCamelCase<U>) {
     const { file } = args
-    parseInt(file)
-    console.log("chat", file)
+    const contentStream = file ?
+      require("fs").createReadStream(file) : process.stdin;
+
+    let content = "";
+    contentStream.on("data", (chunk: object) => {
+      content += chunk.toString();
+    });
+
+    contentStream.on("end", () => {
+      console.log(`CONTENT<${content}>`)
+    });
+
+
   }
 }
+
+export const chat = new ChatCommand()
