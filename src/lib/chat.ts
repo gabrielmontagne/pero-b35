@@ -1,5 +1,7 @@
 // import OpenAI from "openai";
 import { ArgumentsCamelCase, Argv, CommandModule, Options } from "yargs"
+import { parseConversation } from "./parse"
+import OpenAI from "openai"
 
 interface ChatOptions extends Options {
   file: string
@@ -23,10 +25,20 @@ class ChatCommand<U extends ChatOptions> implements CommandModule<{}, U> {
     });
 
     contentStream.on("end", () => {
-      console.log(`CONTENT<${content}>`)
+      const conversation = parseConversation(content);
+      const openai = new OpenAI()
+
+      openai.chat.completions.create(
+        {
+          model: 'gpt-4o',
+          messages: [
+            { role: 'user', content: conversation }
+          ]
+        }
+      ).then(
+        res => console.log([conversation, res.choices[0].message.content].join('\nA>>\n\n'))
+      )
     });
-
-
   }
 }
 
