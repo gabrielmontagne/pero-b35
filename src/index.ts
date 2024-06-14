@@ -1,20 +1,21 @@
 #!/usr/bin/env node
 
-import { parseConversation } from "./parse";
+import { config } from "dotenv";
+import { resolve } from "path";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
-import { resolve } from "path";
-import { config } from "dotenv";
-import OpenAI from "openai";
+import { ChatCommand } from "./lib/chat";
 
-console.log(__dirname)
 const envPath = resolve(__dirname, '..', '.env');
 config({ path: envPath });
 
 export function main() {
   console.log(
     yargs(hideBin(process.argv))
-      .command(
+      .command(new ChatCommand())
+      // .command(
+
+        /*
         "chat",
         "chat endpoints",
         {
@@ -53,7 +54,10 @@ export function main() {
 
           });
         }
-      ).parse()
+        */
+
+      //)
+      .parse()
   );
 
 }
