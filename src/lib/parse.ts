@@ -1,4 +1,7 @@
+import { ChatCompletionMessageParam } from "openai/resources";
 
-export function parseConversation(text: string): string {
-    return text;
+export function parseMessages(text: string): ChatCompletionMessageParam[] {
+    return [
+        { role: 'user' as const, content: text }
+    ]
 }
