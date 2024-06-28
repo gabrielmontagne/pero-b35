@@ -1,4 +1,6 @@
 import { Observable } from "rxjs";
+import * as fs from "fs";
+import * as path from "path";
 
 const algo$ = new Observable<number>(observer => {
   observer.next(1);
@@ -9,6 +11,7 @@ algo$.subscribe(log('Uno'))
 
 
 export function log<T>(context: string) {
+  console.log(`[LOG ${context}] ${__dirname}`)
   return {
     next: (n: T) => console.log(`[NXT ${context}]`, JSON.stringify(n, null, 2)),
     error: (e: unknown) => console.error(`[ERR ${context}]`, e),
