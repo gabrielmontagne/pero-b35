@@ -1,0 +1,20 @@
+import { MonoTypeOperatorFunction, tap } from "rxjs";
+
+export function pout<T>(): MonoTypeOperatorFunction<T> {
+  return source$ => source$.pipe(
+    tap(content => process.stdout.write(forceString(content)))
+  )
+}
+
+export function out<T>() {
+  return {
+    next: (n: T) => process.stdout.write(forceString(n))
+  }
+}
+
+export function forceString(content: unknown): string {
+  if (typeof content === 'string') {
+    return content;
+  }
+  return JSON.stringify(content, null, 2);
+}
