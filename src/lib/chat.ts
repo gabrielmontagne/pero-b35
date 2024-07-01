@@ -1,8 +1,9 @@
-import { ArgumentsCamelCase, Argv, CommandModule, Options } from "yargs"
-import { parseMessages } from "./parse"
 import OpenAI from "openai"
 import { from } from "rxjs"
-import { log } from "./log"
+import { ArgumentsCamelCase, Argv, CommandModule, Options } from "yargs"
+import { flog, log } from "./log"
+import { parseMessages } from "./parse"
+import { out } from "./out"
 
 interface ChatOptions extends Options {
   file: string
@@ -36,7 +37,11 @@ class ChatCommand<U extends ChatOptions> implements CommandModule<{}, U> {
             messages,
           }
         )
-      ).subscribe(log('Chat'))
+      )
+      .pipe(
+        flog('Through chat')
+      )
+      .subscribe(out())
       console.log('done')
 
     });
