@@ -37,6 +37,7 @@ class ChatCommand<U extends ChatOptions> implements CommandModule<{}, U> {
           }
         )
       ).subscribe(log('Chat'))
+      console.log('done')
 
     });
   }
