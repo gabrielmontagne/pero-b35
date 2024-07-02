@@ -1,7 +1,7 @@
 import * as fs from "fs";
 import * as path from "path";
 import { MonoTypeOperatorFunction, tap } from "rxjs";
-import { forceString } from "./out";
+import { forceString } from "./io";
 
 const logFilePath = path.join('/tmp', 'pero-chat.log')
 

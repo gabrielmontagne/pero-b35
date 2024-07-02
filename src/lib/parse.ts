@@ -1,7 +1,14 @@
-import { ChatCompletionMessageParam } from "openai/resources";
+import { OperatorFunction, map } from "rxjs";
+import { Session } from "./scan";
 
-export function parseMessages(text: string): ChatCompletionMessageParam[] {
+export function parse(text: string): Session {
     return [
         { role: 'user' as const, content: text }
     ]
+}
+
+export function parseSession():OperatorFunction<string, Session> {
+  return source$ => source$.pipe(
+    map(parse)
+  )
 }

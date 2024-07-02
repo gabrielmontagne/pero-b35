@@ -1,9 +1,8 @@
-import OpenAI from "openai"
-import { from } from "rxjs"
 import { ArgumentsCamelCase, Argv, CommandModule, Options } from "yargs"
-import { flog, log } from "./log"
-import { parseMessages } from "./parse"
-import { out } from "./out"
+import { createInputText$, out } from "./io"
+import { flog } from "./log"
+import { parseSession } from "./parse"
+import { scanSession } from "./scan"
 
 interface ChatOptions extends Options {
   file: string
@@ -18,33 +17,13 @@ class ChatCommand<U extends ChatOptions> implements CommandModule<{}, U> {
   }
   handler(args: ArgumentsCamelCase<U>) {
     const { file } = args
-    const contentStream = file ?
-      require("fs").createReadStream(file) : process.stdin;
+    const input$ = createInputText$(file)
 
-    let content = "";
-    contentStream.on("data", (chunk: object) => {
-      content += chunk.toString();
-    });
-
-    contentStream.on("end", () => {
-      const messages = parseMessages(content);
-      const openai = new OpenAI()
-
-      from(
-        openai.chat.completions.create(
-          {
-            model: 'gpt-4o',
-            messages,
-          }
-        )
-      )
-      .pipe(
-        flog('Through chat')
-      )
-      .subscribe(out())
-      console.log('done')
-
-    });
+    input$.pipe(
+      parseSession(),
+      flog('Through chat'),
+      scanSession()
+    ).subscribe(out())
   }
 }
 
