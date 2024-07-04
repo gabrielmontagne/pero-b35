@@ -1,5 +1,5 @@
 import { describe, expect, it } from '@jest/globals';
-import { parse, startEndSplit } from './parse';
+import { parse, startEndSplit } from './restructure';
 
 
 describe('parse', () => {

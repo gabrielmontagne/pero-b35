@@ -1,7 +1,8 @@
+import { map, of, switchMap } from "rxjs"
 import { ArgumentsCamelCase, Argv, CommandModule, Options } from "yargs"
 import { createInputText$, out } from "./io"
 import { flog } from "./log"
-import { parseSession } from "./parse"
+import { parseSession, recombineSession, startEndSplit } from "./restructure"
 import { scanSession } from "./scan"
 
 interface ChatOptions extends Options {
@@ -20,9 +21,21 @@ class ChatCommand<U extends ChatOptions> implements CommandModule<{}, U> {
     const input$ = createInputText$(file)
 
     input$.pipe(
-      parseSession(),
-      flog('Through chat'),
-      scanSession()
+      map(startEndSplit),
+      switchMap(
+        ({ leading, main, trailing }) => {
+
+          console.log('PARTS', { leading, main, trailing });
+
+          return of(main).pipe(
+            flog('Main'),
+            parseSession(),
+            flog('Through chat'),
+            scanSession(),
+            recombineSession()
+          )
+        }
+      ),
     ).subscribe(out())
   }
 }

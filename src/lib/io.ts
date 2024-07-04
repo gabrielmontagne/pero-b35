@@ -16,6 +16,11 @@ export function forceString(content: unknown): string {
   if (typeof content === 'string') {
     return content;
   }
+
+  if (!content) {
+    return '';
+  }
+
   return JSON.stringify(content, null, 2);
 }
 
