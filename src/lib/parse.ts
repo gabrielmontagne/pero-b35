@@ -1,8 +1,8 @@
 import { OperatorFunction, map } from "rxjs";
 import { Session } from "./scan";
 
-const startMarker = /^___START___\s*\n/m
-const endMarker = /^___END___\s*\n/m
+const startMarker = /^__START__\s*\n/m
+const endMarker = /^__END__\s*\n/m
 
 export function parse(text: string): Session {
   return [
@@ -19,8 +19,8 @@ export function startEndSplit(text: string): { leading?: string, main: string, t
 
   return {
     main,
-    ...leadingChunks.length && { leading: leadingChunks.join('___START___\n') },
-    ...trailingChunks?.length && { trailing: trailingChunks.join('___END___\n') }
+    ...leadingChunks.length && { leading: leadingChunks.join('__START__\n') },
+    ...trailingChunks?.length && { trailing: trailingChunks.join('__END__\n') }
   }
 }
 
