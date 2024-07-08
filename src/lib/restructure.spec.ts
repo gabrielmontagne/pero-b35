@@ -1,5 +1,10 @@
 import { describe, expect, it } from '@jest/globals';
-import { parse, startEndSplit } from './restructure';
+import { TestScheduler } from 'rxjs/testing';
+import { parse, recombineSession, startEndSplit } from './restructure';
+
+const testScheduler = new TestScheduler((actual, expected) => {
+  expect(actual).toEqual(expected);
+});
 
 
 describe('parse', () => {
@@ -23,7 +28,7 @@ describe('startEndSplit', () => {
 
   it('should split a string into leading, main, and trailing', () => {
     const result = startEndSplit(
-`AAAA
+      `AAAA
 __START__
 BBBB
 __END__
@@ -39,7 +44,7 @@ CCCC`);
 
   it('should use the last __START__ as leading, when there are multiple', () => {
     const result = startEndSplit(
-`AAAA
+      `AAAA
 __START__
 BBBB
 __START__
@@ -54,7 +59,7 @@ CCCC`);
 
   it('should use the first __END__ as trailing, when there are multiple', () => {
     const result = startEndSplit(
-`AAAA
+      `AAAA
 BBBB
 __END__
 CCCC
@@ -67,4 +72,37 @@ DDDD`);
       }
     );
   });
+});
+
+describe('recombineSession', () => {
+  it('should recombine a session', () => {
+    // expect({ a: 1, b: { c: 3 } }).toEqual({ a: 1, b: { c: 2 } });
+
+    testScheduler.run(
+      helpers => {
+        const { cold, expectObservable } = helpers;
+        const inputs = {
+          a: [
+            { role: 'user' as const, content: 'foo' },
+            { role: 'assistant' as const, content: 'bar' },
+            { role: 'user' as const, content: 'baz' }
+          ], 
+          b: [
+            { role: 'system' as const, content: 'soo' },
+            { role: 'user' as const, content: 'too' },
+            { role: 'assistant' as const, content: 'aoo' },
+          ], 
+        }
+        const source = cold('a-b-|', inputs).pipe(recombineSession());
+        expectObservable(source)
+          .toBe(
+            'a-b-|', 
+            {
+              a: `foo\n\nA>>\n\nbar\n\nQ>>\n\nbaz\n\n`,
+              b: `soo\n\nQ>>\n\ntoo\n\nA>>\n\naoo\n\n`
+            }
+          );
+      }
+    )
+  })
 });
