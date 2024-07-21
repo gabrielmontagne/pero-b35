@@ -5,6 +5,7 @@ import { flog } from "./log";
 
 export type Session = ChatCompletionMessageParam[]
 
+
 export function scanSession(): MonoTypeOperatorFunction<Session> {
   return source$ => source$.pipe(
     switchMap(session => {

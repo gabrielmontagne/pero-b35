@@ -25,9 +25,7 @@ export function parseToolsConfig(config: string) {
 
 function toConfig(acc: ToolsConfig, [name, tool]: [string, RawTool]) {
 
-  const { description, parameters, command } = tool;
-
-  console.log('COMMAND', `>>${command}<<`);
+  const { description, parameters, /* command */ } = tool;
 
   const properties = Object.entries(parameters).reduce(
     (acc, [key, value]) => ({ ...acc, [key]: { type: "string", description: value } }

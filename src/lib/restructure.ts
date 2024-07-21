@@ -45,7 +45,6 @@ export function parseSession(): OperatorFunction<string, Session> {
 export function recombineSession(): OperatorFunction<Session, string> {
   return source$ => source$.pipe(
     map(session => {
-      console.log('RECOMBINE', session);
       const result = session.reduceRight(
         (acc, message, i) => {
           const { role, content } = message;
