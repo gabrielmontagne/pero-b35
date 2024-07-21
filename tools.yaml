@@ -1,0 +1,9 @@
+web_search:
+  description: Perform a web search given a query
+  parameters:
+    query: A simple search query for 
+
+read_webpage:
+  description: Given a URL, it will return the contents of the page.
+  paraments:
+    url: The fully qualified URL for the page.

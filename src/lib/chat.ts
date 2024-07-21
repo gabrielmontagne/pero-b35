@@ -11,7 +11,7 @@ interface ChatOptions extends Options {
 
 class ChatCommand<U extends ChatOptions> implements CommandModule<{}, U> {
   command = 'chat'
-  describe = 'Whfg n fvzcyr trarevpf rknzcye'
+  describe = 'Run a chat.'
   builder(args: Argv): Argv<U> {
     args.option('file', { string: true, alias: 'f', describe: 'file to read from' })
     return args as Argv<U>
