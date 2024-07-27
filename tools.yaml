@@ -1,9 +1,23 @@
-web_search:
-  description: Perform a web search given a query
+read_text_file:
+  description: Read the contents of a text file
   parameters:
-    query: A simple search query for 
+    file_path: The path to the file to read
+  command: "cat {file_path}"
 
-read_webpage:
-  description: Given a URL, it will return the contents of the page.
-  paraments:
-    url: The fully qualified URL for the page.
+read_web_page:
+  description: Read the contents of a web page
+  parameters:
+    url: The URL of the web page to read
+  command: "elinks {url}"
+
+search_web:
+  description: Search the web for a given query
+  parameters:
+    query: "The search query"
+  command: "googler --np {query}"
+
+read_pdf_file:
+  description: Read the contents of a text file
+  parameters:
+    file_path: The path to the file to read
+  command: "pdftotext -layout -nopgbrk {file_path} -"

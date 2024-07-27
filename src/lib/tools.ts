@@ -1,5 +1,7 @@
-import { ChatCompletionTool } from "openai/resources";
 import * as yaml from "js-yaml";
+import { ChatCompletionTool } from "openai/resources";
+import { combineLatest, map, of } from "rxjs";
+import { createInputText$ } from "./io";
 
 type ApiTools = ChatCompletionTool[];
 
@@ -11,8 +13,29 @@ type RawTool = {
 
 type RawTools = Record<string, RawTool>;
 
-type ToolsConfig = {
+export type ToolsConfig = {
   api: ApiTools;
+}
+
+export function readToolsConfig$(paths: string[]) {
+  return combineLatest(
+    paths.map(createInputText$)
+  ).pipe(
+    map(
+      yamls => {
+        const initial: ToolsConfig = { api: [] }
+        return yamls.reduce(
+          (acc, next) => {
+            const nextTools = parseToolsConfig(next)
+            return {
+              api: [...acc.api, ...nextTools.api]
+            }
+          },
+          initial
+        )
+      }
+    )
+  )
 }
 
 export function parseToolsConfig(config: string) {
