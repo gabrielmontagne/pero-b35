@@ -1,5 +1,5 @@
 read_text_file:
-  description: Read the contents of a text file
+  description: Read the contents of a text file, including code, markdown, and fountain files.
   parameters:
     file_path: The path to the file to read
   command: "cat {file_path}"
