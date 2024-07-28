@@ -22,7 +22,7 @@ search_web:
   command: "googler --np {query}"
 `
 
-  it('should unpaack a YAML tools config into an OpenAI tools config', () => {
+  it('should unpack a YAML tools config into an OpenAI tools config', () => {
 
     expect(parseToolsConfig(config).api).toEqual(
       [
@@ -81,5 +81,16 @@ search_web:
       ]
     )
 
+  });
+
+  it('should index tool commands by name', () => {
+    const tools = parseToolsConfig(config)
+    expect(tools.commandByName).toEqual(
+      {
+        "read_file": "cat {file_path}",
+        "read_web_page": "elinks {url}",
+        "search_web": "googler --np {query}",
+      }
+    )
   });
 });
