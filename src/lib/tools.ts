@@ -1,6 +1,6 @@
 import * as yaml from "js-yaml";
-import { ChatCompletion, ChatCompletionTool } from "openai/resources";
-import { MonoTypeOperatorFunction, NEVER, Observable, combineLatest, map, of, switchMap } from "rxjs";
+import { ChatCompletion, ChatCompletionTool, ChatCompletionToolMessageParam } from "openai/resources";
+import { MonoTypeOperatorFunction, NEVER, Observable, combineLatest, forkJoin, map, of, switchMap } from "rxjs";
 import { exec } from 'child_process';
 import { createInputText$ } from "./io";
 import { flog } from "./log";
@@ -20,6 +20,8 @@ export type ToolsConfig = {
   commandByName: Record<string, string>
 
 }
+
+type ToolResult = ChatCompletionToolMessageParam;
 
 export function readToolsConfig$(paths: string[]) {
   return combineLatest(
@@ -106,11 +108,17 @@ export function runToolsIfNeeded(commandByName: Record<string, string>): MonoTyp
               const { id, function: fn } = toolCall
               const { name, arguments: args } = fn
               const command = commandByName[name]
-              return runCommand$(command, JSON.parse(args))
+              return runCommand$(command, JSON.parse(args), id)
             },
           )
 
-          return combineLatest(runCommands).pipe(switchMap(() => NEVER))
+          return forkJoin(runCommands).pipe(switchMap((results) => {
+            console.log('RESULTS', results);
+            return NEVER
+          }
+
+          )
+          )
         }
 
         return of(response)
@@ -120,22 +128,26 @@ export function runToolsIfNeeded(commandByName: Record<string, string>): MonoTyp
   )
 }
 
-function runCommand$(commandTemplate: string, args: Record<string, string>): Observable<string> {
-
+function runCommand$(commandTemplate: string, args: Record<string, string>, id: string): Observable<ToolResult> {
   const command = formatCommand(commandTemplate, args)
-
-  return new Observable<string>(o => {
+  return new Observable<ToolResult>(o => {
     exec(
-      command,  
+      command,
       (error, stdout, stderr) => {
         if (error) {
           console.error(`exec error: ${error}`);
           o.error(stderr);
         }
-        o.next(stdout);
+
+        const result: ToolResult = {
+          tool_call_id: id,
+          content: stdout,
+          role: 'tool'
+        }
+
+
+        o.next(result);
         o.complete();
-        // console.log(`stdout: ${stdout}`);
-        // console.log(`stderr: ${stderr}`);
       }
     )
   }).pipe(flog(`Run commnd »${command}«`))

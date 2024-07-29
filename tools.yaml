@@ -17,7 +17,7 @@ search_web:
   command: "googler --np {{query}}"
 
 read_pdf_file:
-  description: Read the contents of a text file
+  description: Read the contents of a pdf file
   parameters:
-    file_path: The path to the file to read
+    file_path: The path to the pdf file to read
   command: "pdftotext -layout -nopgbrk {{file_path}} -"
