@@ -1,7 +1,9 @@
 import * as yaml from "js-yaml";
 import { ChatCompletion, ChatCompletionTool } from "openai/resources";
-import { MonoTypeOperatorFunction, Observable, combineLatest, map, of, switchMap } from "rxjs";
+import { MonoTypeOperatorFunction, NEVER, Observable, combineLatest, map, of, switchMap } from "rxjs";
+import { exec } from 'child_process';
 import { createInputText$ } from "./io";
+import { flog } from "./log";
 
 type ApiTools = ChatCompletionTool[];
 
@@ -107,8 +109,8 @@ export function runToolsIfNeeded(commandByName: Record<string, string>): MonoTyp
               return runCommand$(command, JSON.parse(args))
             },
           )
-          console.log('run commands', runCommands)
-          // return combineLatest(runCommands).pipe()
+
+          return combineLatest(runCommands).pipe(switchMap(() => NEVER))
         }
 
         return of(response)
@@ -118,25 +120,33 @@ export function runToolsIfNeeded(commandByName: Record<string, string>): MonoTyp
   )
 }
 
-function runCommand$(command: string, args: Record<string, string>): Observable<string> {
+function runCommand$(commandTemplate: string, args: Record<string, string>): Observable<string> {
 
-  console.log('RUN COMMAND', formatCommand(command, args));
+  const command = formatCommand(commandTemplate, args)
 
-  // ESTO ESTÁ MAL -- ocupamos agregar los mensajes.
-  const run = new Observable<string>(o => {
-    // nichts jetzt
-  })
-
-  return run
+  return new Observable<string>(o => {
+    exec(
+      command,  
+      (error, stdout, stderr) => {
+        if (error) {
+          console.error(`exec error: ${error}`);
+          o.error(stderr);
+        }
+        o.next(stdout);
+        o.complete();
+        // console.log(`stdout: ${stdout}`);
+        // console.log(`stderr: ${stderr}`);
+      }
+    )
+  }).pipe(flog(`Run commnd »${command}«`))
 }
 
 export function formatCommand(commandTemplate: string, parameters: { [key: string]: string }): string {
-  return commandTemplate.replace(/{{(\w+)}}/g, (_, key) => 
-    {
-      if (!parameters[key]) {
-        throw new Error(`Missing parameter ${key} in command ${commandTemplate}`)
-      }
-      return parameters[key]
+  return commandTemplate.replace(/{{(\w+)}}/g, (_, key) => {
+    if (!parameters[key]) {
+      throw new Error(`Missing parameter ${key} in command ${commandTemplate}`)
     }
+    return parameters[key]
+  }
   );
 }
