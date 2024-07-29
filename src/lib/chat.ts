@@ -1,10 +1,10 @@
+import path from "path"
 import { combineLatest, map, of, switchMap } from "rxjs"
 import { ArgumentsCamelCase, Argv, CommandModule, Options } from "yargs"
 import { createInputText$, out } from "./io"
 import { flog } from "./log"
 import { parseSession, recombineSession, startEndSplit } from "./restructure"
 import { scanSession } from "./scan"
-import path from "path"
 import { readToolsConfig$ } from "./tools"
 
 interface ChatOptions extends Options {
@@ -42,11 +42,7 @@ class ChatCommand<U extends ChatOptions> implements CommandModule<{}, U> {
     )
       .pipe(
         switchMap(
-          ({ input: { leading, main, trailing }, tools }) => {
-
-            console.log('PARTS', { leading, main, trailing });
-            console.log('TOOLS', tools);
-
+          ({ input: { main }, tools }) => {
             return of(main).pipe(
               flog('Main'),
               parseSession(),

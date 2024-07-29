@@ -1,7 +1,7 @@
-import * as yaml from "js-yaml";
-import { ChatCompletion, ChatCompletionMessage, ChatCompletionTool, ChatCompletionToolMessageParam } from "openai/resources";
-import { MonoTypeOperatorFunction, NEVER, Observable, combineLatest, forkJoin, map, of, switchMap } from "rxjs";
 import { exec } from 'child_process';
+import * as yaml from "js-yaml";
+import { ChatCompletion, ChatCompletionMessageParam, ChatCompletionTool, ChatCompletionToolMessageParam } from "openai/resources";
+import { MonoTypeOperatorFunction, Observable, combineLatest, forkJoin, map, of, switchMap, throwError } from "rxjs";
 import { createInputText$ } from "./io";
 import { flog } from "./log";
 
@@ -21,7 +21,6 @@ export type ToolsConfig = {
 
 }
 
-// type ToolCall = ChatCompletionMessageToolCall;
 type ToolResult = ChatCompletionToolMessageParam;
 
 export function readToolsConfig$(paths: string[]) {
@@ -95,9 +94,7 @@ export function runToolsIfNeeded(commandByName: Record<string, string>): MonoTyp
         const firstChoice = response.choices[0]
         const reason = firstChoice.finish_reason
 
-
         if (reason === 'tool_calls') {
-
           const toolCalls = firstChoice.message.tool_calls
 
           if (!toolCalls) return of(response)
@@ -107,17 +104,12 @@ export function runToolsIfNeeded(commandByName: Record<string, string>): MonoTyp
               const { name, arguments: args } = fn
               const command = commandByName[name]
               return runCommand$(command, JSON.parse(args), id)
-                .pipe(map(result => [toolCall, result]))
             },
           )
 
           return forkJoin(runCommands).pipe(switchMap((results) => {
-            const toolMessages = results.reduce( 
-              (acc, [toolCall, toolResult]) => [...acc, toolCall, toolResult],
-              [])
-
-            console.log('TOOL MESSAGES', toolMessages);
-            return NEVER
+            const toolResults = [firstChoice.message, ...results]
+            return throwError(() => new RerunWithToolResults(toolResults))
           }))
         }
 
@@ -145,8 +137,6 @@ function runCommand$(commandTemplate: string, args: Record<string, string>, id: 
           content: stdout,
           role: 'tool'
         }
-
-
         o.next(result);
         o.complete();
       }
@@ -162,4 +152,12 @@ export function formatCommand(commandTemplate: string, parameters: { [key: strin
     return parameters[key]
   }
   );
+}
+
+export class RerunWithToolResults extends Error {
+  toolsMessages: ChatCompletionMessageParam[]
+  constructor(toolsMessages: ChatCompletionMessageParam[]) {
+    super()
+    this.toolsMessages = toolsMessages;
+  }
 }
