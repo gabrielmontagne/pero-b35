@@ -1,5 +1,5 @@
 import * as yaml from "js-yaml";
-import { ChatCompletion, ChatCompletionTool, ChatCompletionToolMessageParam } from "openai/resources";
+import { ChatCompletion, ChatCompletionMessage, ChatCompletionTool, ChatCompletionToolMessageParam } from "openai/resources";
 import { MonoTypeOperatorFunction, NEVER, Observable, combineLatest, forkJoin, map, of, switchMap } from "rxjs";
 import { exec } from 'child_process';
 import { createInputText$ } from "./io";
@@ -21,6 +21,7 @@ export type ToolsConfig = {
 
 }
 
+// type ToolCall = ChatCompletionMessageToolCall;
 type ToolResult = ChatCompletionToolMessageParam;
 
 export function readToolsConfig$(paths: string[]) {
@@ -60,8 +61,6 @@ function toConfig(acc: ToolsConfig, [name, tool]: [string, RawTool]) {
 
   const { description, parameters, command } = tool;
 
-  console.log('TOOL', name, command);
-
   const properties = Object.entries(parameters).reduce(
     (acc, [key, value]) => ({ ...acc, [key]: { type: "string", description: value } }
     ), {}
@@ -90,7 +89,6 @@ function toConfig(acc: ToolsConfig, [name, tool]: [string, RawTool]) {
 }
 
 export function runToolsIfNeeded(commandByName: Record<string, string>): MonoTypeOperatorFunction<ChatCompletion> {
-  console.log('RUN TOOLS IF NEEDED', commandByName);
   return source$ => source$.pipe(
     switchMap(
       response => {
@@ -109,16 +107,18 @@ export function runToolsIfNeeded(commandByName: Record<string, string>): MonoTyp
               const { name, arguments: args } = fn
               const command = commandByName[name]
               return runCommand$(command, JSON.parse(args), id)
+                .pipe(map(result => [toolCall, result]))
             },
           )
 
           return forkJoin(runCommands).pipe(switchMap((results) => {
-            console.log('RESULTS', results);
-            return NEVER
-          }
+            const toolMessages = results.reduce( 
+              (acc, [toolCall, toolResult]) => [...acc, toolCall, toolResult],
+              [])
 
-          )
-          )
+            console.log('TOOL MESSAGES', toolMessages);
+            return NEVER
+          }))
         }
 
         return of(response)
@@ -129,6 +129,7 @@ export function runToolsIfNeeded(commandByName: Record<string, string>): MonoTyp
 }
 
 function runCommand$(commandTemplate: string, args: Record<string, string>, id: string): Observable<ToolResult> {
+
   const command = formatCommand(commandTemplate, args)
   return new Observable<ToolResult>(o => {
     exec(
