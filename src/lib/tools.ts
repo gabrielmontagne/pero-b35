@@ -1,6 +1,6 @@
 import * as yaml from "js-yaml";
-import { ChatCompletionTool } from "openai/resources";
-import { combineLatest, map, of } from "rxjs";
+import { ChatCompletion, ChatCompletionTool } from "openai/resources";
+import { MonoTypeOperatorFunction, Observable, combineLatest, map, of, switchMap } from "rxjs";
 import { createInputText$ } from "./io";
 
 type ApiTools = ChatCompletionTool[];
@@ -83,4 +83,60 @@ function toConfig(acc: ToolsConfig, [name, tool]: [string, RawTool]) {
       [name]: command
     }
   }
+}
+
+export function runToolsIfNeeded(commandByName: Record<string, string>): MonoTypeOperatorFunction<ChatCompletion> {
+  console.log('RUN TOOLS IF NEEDED', commandByName);
+  return source$ => source$.pipe(
+    switchMap(
+      response => {
+        const firstChoice = response.choices[0]
+        const reason = firstChoice.finish_reason
+
+
+        if (reason === 'tool_calls') {
+
+          const toolCalls = firstChoice.message.tool_calls
+
+          if (!toolCalls) return of(response)
+          const runCommands = toolCalls.map(
+            (toolCall) => {
+              const { id, function: fn } = toolCall
+              const { name, arguments: args } = fn
+              const command = commandByName[name]
+              return runCommand$(command, JSON.parse(args))
+            },
+          )
+          console.log('run commands', runCommands)
+          // return combineLatest(runCommands).pipe()
+        }
+
+        return of(response)
+      }
+    ),
+
+  )
+}
+
+function runCommand$(command: string, args: Record<string, string>): Observable<string> {
+
+  console.log('RUN COMMAND', formatCommand(command, args));
+
+  // ESTO ESTÁ MAL -- ocupamos agregar los mensajes.
+  const run = new Observable<string>(o => {
+    // nichts jetzt
+  })
+
+  return run
+}
+
+export function formatCommand(commandTemplate: string, parameters: { [key: string]: string }): string {
+  return commandTemplate.replace(/{{(\w+)}}/g, (_, key) => 
+    {
+      if (!parameters[key]) {
+        throw new Error(`Missing parameter ${key} in command ${commandTemplate}`)
+      }
+      return parameters[key]
+    }
+  );
 }

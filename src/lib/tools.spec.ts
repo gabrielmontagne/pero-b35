@@ -1,6 +1,6 @@
-import { parseToolsConfig } from "./tools";
+import { formatCommand, parseToolsConfig } from "./tools";
 
-describe('tools', () => {
+describe('tools config', () => {
   const config = `
 
 read_file:
@@ -94,3 +94,20 @@ search_web:
     )
   });
 });
+
+
+describe('command execution', () => {
+  it('should format a command with parameters', () => {
+    const command = formatCommand("echo {{foo}}", { foo: 'bar' })
+    expect(command).toEqual('echo bar')
+  });
+
+  it('should format a command with multpleparameters', () => {
+    const command = formatCommand("echo {{foo}} {{bar}}", { foo: 'bar', bar: 'baz' })
+    expect(command).toEqual('echo bar baz')
+  });
+
+  it('should throw an error if a parameter is missing', () => {
+    expect(() => formatCommand("echo {{foo}}", { bar: 'baz' })).toThrow('Missing parameter foo in command echo {{foo}}')
+  });
+})
