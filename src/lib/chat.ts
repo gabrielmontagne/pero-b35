@@ -1,42 +1,58 @@
-import { map, of, switchMap } from "rxjs"
+import path from "path"
+import { combineLatest, map, of, switchMap } from "rxjs"
 import { ArgumentsCamelCase, Argv, CommandModule, Options } from "yargs"
 import { createInputText$, out } from "./io"
 import { flog } from "./log"
 import { parseSession, recombineSession, startEndSplit } from "./restructure"
 import { scanSession } from "./scan"
+import { readToolsConfig$ } from "./tools"
 
 interface ChatOptions extends Options {
-  file: string
+  file: string,
+  tools: string[]
 }
+
+const defaultToolsPath = path.join(__dirname, '..', '..', 'tools.yaml')
 
 class ChatCommand<U extends ChatOptions> implements CommandModule<{}, U> {
   command = 'chat'
-  describe = 'Whfg n fvzcyr trarevpf rknzcye'
+  describe = 'Run a chat.'
   builder(args: Argv): Argv<U> {
-    args.option('file', { string: true, alias: 'f', describe: 'file to read from' })
+    args.option('file', { string: true, alias: 'f', describe: 'file to read from' }),
+    args.option('tools', {
+      alias: 't',
+      describe: 'tools config file(s)',
+      type: 'string',
+      array: true,
+      default: [defaultToolsPath]
+    })
     return args as Argv<U>
   }
+
   handler(args: ArgumentsCamelCase<U>) {
-    const { file } = args
+    const { file, tools } = args
+
     const input$ = createInputText$(file)
 
-    input$.pipe(
-      map(startEndSplit),
-      switchMap(
-        ({ leading, main, trailing }) => {
-
-          console.log('PARTS', { leading, main, trailing });
-
-          return of(main).pipe(
-            flog('Main'),
-            parseSession(),
-            flog('Through chat'),
-            scanSession(),
-            recombineSession()
-          )
-        }
-      ),
-    ).subscribe(out())
+    combineLatest(
+      {
+        input: input$.pipe(map(startEndSplit)),
+        tools: readToolsConfig$(tools)
+      }
+    )
+      .pipe(
+        switchMap(
+          ({ input: { main }, tools }) => {
+            return of(main).pipe(
+              flog('Main'),
+              parseSession(),
+              flog('Through chat'),
+              scanSession(tools),
+              recombineSession()
+            )
+          }
+        ),
+      ).subscribe(out())
   }
 }
 
