@@ -3,7 +3,7 @@ import * as path from "path";
 import { MonoTypeOperatorFunction, tap } from "rxjs";
 import { forceString } from "./io";
 
-const logFilePath = path.join('/tmp', 'pero-chat.log')
+const logFilePath = path.join(__dirname, '..', '..', 'pero-chat.log')
 
 export function log<T>(context: string) {
   return {
