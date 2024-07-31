@@ -1,28 +1,56 @@
+import { ChatCompletionRole } from "openai/resources";
 import { OperatorFunction, map } from "rxjs";
 import { Session } from "./scan";
-import { ChatCompletionRole } from "openai/resources";
 
 const startMarker = /^__START__\s*\n/m
 const endMarker = /^__END__\s*\n/m
 
 const roleToHeader: Record<ChatCompletionRole, string> = {
-  system: 'S>>',
-  user: 'Q>>',
-  assistant: 'A>>',
-  tool: 'T>>',
-  function: 'F>>'
+  system: 'S',
+  user: 'Q',
+  assistant: 'A',
+  tool: 'T',
+  function: 'F'
 }
 
-const visibleRoles = new Set<ChatCompletionRole>(['user', 'assistant'])
-
+const visibleRoles = new Set<ChatCompletionRole>(['user', 'assistant', 'system'])
 const impliedInitialRole = new Set<ChatCompletionRole>(['system', 'user'])
 
-
 export function parse(text: string): Session {
-  return [
-    { role: 'user' as const, content: text }
-  ]
+
+  const { result, firstKey } = pair(text)
+  result[0].key = firstKey == 'Q' ? 'S' : 'Q'
+  const session: Session = []
+
+  return result.filter(r => r.content).reduce(
+    (acc, next) => {
+      if (!next.content) return acc
+      if (next.key == 'S') {
+        return [
+          ...acc,
+         { role: 'system' as const, content: next.content }
+        ]
+
+      } else if (next.key == 'Q') {
+        return [
+          ...acc,
+          { role: 'user' as const, content: next.content }
+        ]
+      } else if (next.key == 'A') {
+        return [
+          ...acc,
+          { role: 'assistant' as const, content: next.content }
+        ]
+      } 
+      return acc 
+
+    },
+    session
+  )
+
+
 }
+
 
 export function startEndSplit(text: string): { leading?: string, main: string, trailing?: string } {
 
@@ -57,10 +85,34 @@ export function recombineSession(): OperatorFunction<Session, string> {
             return acc
           }
           const shouldShowHeader = i != 0 || !impliedInitialRole.has(role)
-          return `${shouldShowHeader ? roleToHeader[role] + '\n\n' : ''}${content}\n\n${acc}`
+          return `${shouldShowHeader ? roleToHeader[role] + '>>\n\n' : ''}${content}\n\n${acc}`
         }, ''
       )
-      return result
+      return result 
     })
   )
+}
+
+function pair(t:string) {
+
+  const result: Partial<{ key: string, content: string }>[] = []
+
+  return t.split(/^(\w)>>/m).reduceRight(
+    (acc, next, i) => {
+      const { result, firstKey: lastFirstKey } = acc
+      const isKey = i % 2 == 1;
+      const clean = next.trim()
+
+      let firstKey = lastFirstKey
+      if (!isKey) {
+        const index = i / 2;
+        result[index] = { content: clean }
+      } else {
+        const index = i / 2 + .5
+        firstKey = clean;
+        result[index].key = clean
+      }
+      return { result, firstKey }
+    }
+  , { result, firstKey: '' })
 }

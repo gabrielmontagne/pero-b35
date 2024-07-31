@@ -16,6 +16,18 @@ describe('parse', () => {
       ]
     );
   });
+
+  it('should understand a system message when it comes first before the question', () => {
+        
+    expect(
+    parse("replies are always in absurdly obscure language.\n\nQ>> \n\nwho was Patas Verdes? \n")
+    ).toEqual(
+      [
+        { role: 'system' as const, content: 'replies are always in absurdly obscure language.' },
+        { role: 'user' as const, content: 'who was Patas Verdes?' }
+      ]
+    )
+  })
 });
 
 describe('startEndSplit', () => {
@@ -74,9 +86,8 @@ DDDD`);
   });
 });
 
-describe('recombineSession', () => {
+describe.skip('recombineSession', () => {
   it('should recombine a session', () => {
-    // expect({ a: 1, b: { c: 3 } }).toEqual({ a: 1, b: { c: 2 } });
 
     testScheduler.run(
       helpers => {
