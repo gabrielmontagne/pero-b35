@@ -86,7 +86,7 @@ DDDD`);
   });
 });
 
-describe.skip('recombineSession', () => {
+describe('recombineSession', () => {
   it('should recombine a session', () => {
 
     testScheduler.run(
