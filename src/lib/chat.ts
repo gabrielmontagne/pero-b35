@@ -48,7 +48,8 @@ class ChatCommand<U extends ChatOptions> implements CommandModule<{}, U> {
               parseSession(),
               flog('Through chat'),
               scanSession(tools),
-              recombineSession()
+              recombineSession(),
+              map(content => `${content}Q>>\n\n`)
             )
           }
         ),
