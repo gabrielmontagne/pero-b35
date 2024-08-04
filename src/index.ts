@@ -7,7 +7,10 @@ import { hideBin } from "yargs/helpers";
 import { chat } from "./lib/chat";
 
 const envPath = resolve(__dirname, '..', '.env');
+
 config({ path: envPath });
+
+console.log('RAI EVN-mesta.', process.env, envPath)
 
 export function main() {
   yargs(hideBin(process.argv))
