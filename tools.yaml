@@ -14,7 +14,7 @@ search_web:
   description: Search the web for a given query
   parameters:
     query: The search query
-  command: googler --np {{query}}
+  command: googler --np "{{query}}"
 
 read_pdf_file:
   description: Read the contents of a pdf file
