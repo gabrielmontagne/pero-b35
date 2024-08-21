@@ -18,14 +18,24 @@ class ChatCommand<U extends ChatOptions> implements CommandModule<{}, U> {
   command = 'chat'
   describe = 'Run a chat.'
   builder(args: Argv): Argv<U> {
-    args.option('file', { string: true, alias: 'f', describe: 'file to read from' }),
-    args.option('tools', {
-      alias: 't',
-      describe: 'tools config file(s)',
-      type: 'string',
-      array: true,
-      default: [defaultToolsPath]
-    })
+    args.option('file', { string: true, alias: 'f', describe: 'file to read from - defaults to stdin' }),
+      args.option('tools', {
+        alias: 't',
+        describe: 'tools config file(s)',
+        type: 'string',
+        array: true,
+        default: [defaultToolsPath]
+      })
+    args.option(
+      'offline-preamble',
+      {
+        string: true,
+        alias: 'p',
+        describe: 'optional additional "offline" files to be prepended to the prompt',
+        array: true,
+        default: []
+      }
+    )
     return args as Argv<U>
   }
 
