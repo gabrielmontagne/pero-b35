@@ -3,7 +3,7 @@ import { combineLatest, map, of, switchMap } from "rxjs"
 import { ArgumentsCamelCase, Argv, CommandModule, Options } from "yargs"
 import { createInputText$, out } from "./io"
 import { flog } from "./log"
-import { parseSession, recombineSession, startEndSplit } from "./restructure"
+import { parseSession, recombineWithOriginal, recombineSession, startEndSplit } from "./restructure"
 import { scanSession } from "./scan"
 import { readToolsConfig$ } from "./tools"
 
@@ -54,12 +54,16 @@ class ChatCommand<U extends ChatOptions> implements CommandModule<{}, U> {
         switchMap(
           ({ input: { main }, tools }) => {
             return of(main).pipe(
-              flog('Main'),
-              parseSession(),
-              flog('Through chat'),
-              scanSession(tools),
-              recombineSession(),
-              map(content => `${content}Q>>\n\n`)
+              switchMap(content => of(content).pipe(
+                flog('Main'),
+                parseSession(),
+                flog('Through chat'),
+                scanSession(tools),
+                recombineWithOriginal(content),
+                flog('before appending Q>>'),
+                map(content => `${content}\n\nQ>>\n\n`),
+                flog('after appending Q>>'),
+              ))
             )
           }
         ),
