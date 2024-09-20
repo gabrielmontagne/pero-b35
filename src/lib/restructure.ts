@@ -85,9 +85,13 @@ export function parseSession(): OperatorFunction<string, Session> {
   )
 }
 
-export function recombineWithOriginal(original: string): OperatorFunction<Session, string> {
+export function recombineWithOriginal(original: string, outputOnly=false): OperatorFunction<Session, string> {
   return source$ => source$.pipe(
-    map((session) => original + '\n\nA>>\n\n' + session.pop()?.content || '×')
+    map((session) => { 
+      const output = `${session.pop()?.content || '×'}`
+      if (outputOnly) return output
+      return `${original}\n\nA>>\n\n${output}\n\nQ>>\n\n`
+    })
   )
 }
 

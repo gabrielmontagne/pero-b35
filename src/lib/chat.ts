@@ -3,7 +3,7 @@ import { combineLatest, map, of, switchMap } from "rxjs"
 import { ArgumentsCamelCase, Argv, CommandModule, Options } from "yargs"
 import { createInputText$, out } from "./io"
 import { flog } from "./log"
-import { parseSession, recombineWithOriginal, startEndSplit, includePreamble } from "./restructure"
+import { includePreamble, parseSession, recombineWithOriginal, startEndSplit } from "./restructure"
 import { scanSession } from "./scan"
 import { readToolsConfig$ } from "./tools"
 
@@ -11,6 +11,7 @@ interface ChatOptions extends Options {
   file: string,
   tools: string[]
   preamble: string[]
+  outputOnly: boolean
 }
 
 const defaultToolsPath = path.join(__dirname, '..', '..', 'tools.yaml')
@@ -37,11 +38,20 @@ class ChatCommand<U extends ChatOptions> implements CommandModule<{}, U> {
         default: []
       }
     )
+    args.option(
+      'output-only',
+      {
+        boolean: true,
+        default: false,
+        alias: 'o',
+        describe: 'output only, do not return the chat'
+      }
+    )
     return args as Argv<U>
   }
 
   handler(args: ArgumentsCamelCase<U>) {
-    const { file, tools, preamble } = args
+    const { file, tools, preamble, outputOnly } = args
 
     const input$ = createInputText$(file)
 
@@ -56,15 +66,11 @@ class ChatCommand<U extends ChatOptions> implements CommandModule<{}, U> {
           ({ input: { main }, tools }) => {
             return of(main).pipe(
               switchMap(content => of(content).pipe(
-                flog('Main'),
                 includePreamble(preamble),
                 parseSession(),
-                flog('Through chat'),
                 scanSession(tools),
-                recombineWithOriginal(content),
-                flog('before appending Q>>'),
-                map(content => `${content}\n\nQ>>\n\n`),
-                flog('after appending Q>>'),
+                recombineWithOriginal(content, outputOnly),
+                flog('Chat'),
               ))
             )
           }
