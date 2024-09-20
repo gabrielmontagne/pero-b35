@@ -3,13 +3,14 @@ import { combineLatest, map, of, switchMap } from "rxjs"
 import { ArgumentsCamelCase, Argv, CommandModule, Options } from "yargs"
 import { createInputText$, out } from "./io"
 import { flog } from "./log"
-import { parseSession, recombineWithOriginal, recombineSession, startEndSplit } from "./restructure"
+import { parseSession, recombineWithOriginal, startEndSplit, includePreamble } from "./restructure"
 import { scanSession } from "./scan"
 import { readToolsConfig$ } from "./tools"
 
 interface ChatOptions extends Options {
   file: string,
   tools: string[]
+  preamble: string[]
 }
 
 const defaultToolsPath = path.join(__dirname, '..', '..', 'tools.yaml')
@@ -27,7 +28,7 @@ class ChatCommand<U extends ChatOptions> implements CommandModule<{}, U> {
         default: [defaultToolsPath]
       })
     args.option(
-      'offline-preamble',
+      'preamble',
       {
         string: true,
         alias: 'p',
@@ -40,7 +41,7 @@ class ChatCommand<U extends ChatOptions> implements CommandModule<{}, U> {
   }
 
   handler(args: ArgumentsCamelCase<U>) {
-    const { file, tools } = args
+    const { file, tools, preamble } = args
 
     const input$ = createInputText$(file)
 
@@ -56,6 +57,7 @@ class ChatCommand<U extends ChatOptions> implements CommandModule<{}, U> {
             return of(main).pipe(
               switchMap(content => of(content).pipe(
                 flog('Main'),
+                includePreamble(preamble),
                 parseSession(),
                 flog('Through chat'),
                 scanSession(tools),

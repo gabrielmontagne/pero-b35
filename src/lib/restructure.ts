@@ -1,6 +1,8 @@
 import { ChatCompletionRole } from "openai/resources";
-import { OperatorFunction, map } from "rxjs";
+import { OperatorFunction, combineLatest, map } from "rxjs";
+import { flog } from "./log";
 import { Session } from "./scan";
+import { createInputTextFiles$ } from "./io";
 
 const startMarker = /^__START__\s*\n/m
 const endMarker = /^__END__\s*\n/m
@@ -51,6 +53,17 @@ export function parse(text: string): Session {
 
 }
 
+export function includePreamble(preamble: string[]): OperatorFunction<string, string> {
+  return (source$) => combineLatest({
+    preamble: createInputTextFiles$(preamble),
+    main: source$
+  }).pipe(
+    flog(`Include preamble ${preamble.join(',')}`),
+    map(
+      ({ preamble, main }) => `${preamble}\n\n${main}`
+    )
+  )
+}
 
 export function startEndSplit(text: string): { leading?: string, main: string, trailing?: string } {
 
