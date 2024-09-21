@@ -71,6 +71,7 @@ class ChatCommand<U extends ChatOptions> implements CommandModule<{}, U> {
                 scanSession(tools),
                 recombineWithOriginal(content, outputOnly),
                 rebuildLeadingTrailing(leading, trailing),
+                // normalizeLineBreaks(),
                 flog('Chat'),
               ))
             )
