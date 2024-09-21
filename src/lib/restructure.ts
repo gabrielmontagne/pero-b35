@@ -65,6 +65,13 @@ export function includePreamble(preamble: string[]): OperatorFunction<string, st
   )
 }
 
+export function rebuildLeadingTrailing(leading: string | undefined, trailing: string | undefined): OperatorFunction<string, string> {
+  return source$ => source$.pipe(
+    map(content => `${leading ? `${leading}__START__\n\n` : ''
+      }${content}${trailing ? `\n__END__\n${trailing}` : ''}`)
+  )
+}
+
 export function startEndSplit(text: string): { leading?: string, main: string, trailing?: string } {
 
   const leadingChunks = text.split(startMarker)
@@ -85,9 +92,9 @@ export function parseSession(): OperatorFunction<string, Session> {
   )
 }
 
-export function recombineWithOriginal(original: string, outputOnly=false): OperatorFunction<Session, string> {
+export function recombineWithOriginal(original: string, outputOnly = false): OperatorFunction<Session, string> {
   return source$ => source$.pipe(
-    map((session) => { 
+    map((session) => {
       const output = `${session.pop()?.content || '×'}`
       if (outputOnly) return output
       return `${original}\n\nA>>\n\n${output}\n\nQ>>\n\n`

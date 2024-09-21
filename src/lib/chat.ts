@@ -3,7 +3,7 @@ import { combineLatest, map, of, switchMap } from "rxjs"
 import { ArgumentsCamelCase, Argv, CommandModule, Options } from "yargs"
 import { createInputText$, out } from "./io"
 import { flog } from "./log"
-import { includePreamble, parseSession, recombineWithOriginal, startEndSplit } from "./restructure"
+import { includePreamble, parseSession, rebuildLeadingTrailing, recombineWithOriginal, startEndSplit } from "./restructure"
 import { scanSession } from "./scan"
 import { readToolsConfig$ } from "./tools"
 
@@ -63,13 +63,14 @@ class ChatCommand<U extends ChatOptions> implements CommandModule<{}, U> {
     )
       .pipe(
         switchMap(
-          ({ input: { main }, tools }) => {
+          ({ input: { main, leading, trailing }, tools }) => {
             return of(main).pipe(
               switchMap(content => of(content).pipe(
                 includePreamble(preamble),
                 parseSession(),
                 scanSession(tools),
                 recombineWithOriginal(content, outputOnly),
+                rebuildLeadingTrailing(leading, trailing),
                 flog('Chat'),
               ))
             )
