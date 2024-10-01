@@ -1,4 +1,5 @@
-import { MonoTypeOperatorFunction, Observable, scan, tap } from "rxjs";
+import { combineLatest, map, MonoTypeOperatorFunction, Observable, of, reduce, scan, tap } from "rxjs";
+import { flog } from "./log";
 
 export function pout<T>(): MonoTypeOperatorFunction<T> {
   return source$ => source$.pipe(
@@ -24,6 +25,16 @@ export function forceString(content: unknown): string {
   return JSON.stringify(content, null, 2);
 }
 
+export function createInputTextFiles$(files: string[]) {
+  if (!files.length) return of('')
+  return combineLatest(
+    files.map(file => createInputText$(file))
+  ).pipe(
+    flog('BEFORE MAP'),
+    map(files => files.join('\n\n'))
+  )
+}
+
 export function createInputText$(file?: string) {
 
   return new Observable<string>(o => {
@@ -38,6 +49,6 @@ export function createInputText$(file?: string) {
       o.complete();
     });
   }).pipe(
-    scan((acc, content) => acc + content, '')
+    reduce((acc, content) => acc + content, '')
   );
 }

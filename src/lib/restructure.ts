@@ -1,5 +1,7 @@
 import { ChatCompletionRole } from "openai/resources";
-import { OperatorFunction, map } from "rxjs";
+import { OperatorFunction, combineLatest, map } from "rxjs";
+import { createInputTextFiles$ } from "./io";
+import { flog } from "./log";
 import { Session } from "./scan";
 
 const startMarker = /^__START__\s*\n/m
@@ -28,7 +30,7 @@ export function parse(text: string): Session {
       if (next.key == 'S') {
         return [
           ...acc,
-         { role: 'system' as const, content: next.content }
+          { role: 'system' as const, content: next.content }
         ]
 
       } else if (next.key == 'Q') {
@@ -41,8 +43,8 @@ export function parse(text: string): Session {
           ...acc,
           { role: 'assistant' as const, content: next.content }
         ]
-      } 
-      return acc 
+      }
+      return acc
 
     },
     session
@@ -51,6 +53,24 @@ export function parse(text: string): Session {
 
 }
 
+export function includePreamble(preamble: string[]): OperatorFunction<string, string> {
+  return (source$) => combineLatest({
+    preamble: createInputTextFiles$(preamble),
+    main: source$
+  }).pipe(
+    flog(`Include preamble ${preamble.join(',')}`),
+    map(
+      ({ preamble, main }) => `${preamble}\n\n${main}`
+    )
+  )
+}
+
+export function rebuildLeadingTrailing(leading: string | undefined, trailing: string | undefined): OperatorFunction<string, string> {
+  return source$ => source$.pipe(
+    map(content => `${leading ? `${leading}\n__START__\n\n` : ''
+      }${content}${trailing ? `\n__END__\n\n${trailing}` : ''}`)
+  )
+}
 
 export function startEndSplit(text: string): { leading?: string, main: string, trailing?: string } {
 
@@ -72,6 +92,16 @@ export function parseSession(): OperatorFunction<string, Session> {
   )
 }
 
+export function recombineWithOriginal(original: string, outputOnly = false): OperatorFunction<Session, string> {
+  return source$ => source$.pipe(
+    map((session) => {
+      const output = `${session.pop()?.content || '×'}`
+      if (outputOnly) return output
+      return `${original}\nA>>\n\n${output}\n\nQ>>\n\n`
+    })
+  )
+}
+
 export function recombineSession(): OperatorFunction<Session, string> {
   return source$ => source$.pipe(
     map(session => {
@@ -88,12 +118,12 @@ export function recombineSession(): OperatorFunction<Session, string> {
           return `${shouldShowHeader ? roleToHeader[role] + '>>\n\n' : ''}${content}\n\n${acc}`
         }, ''
       )
-      return result 
+      return result
     })
   )
 }
 
-function pair(t:string) {
+function pair(t: string) {
 
   const result: Partial<{ key: string, content: string }>[] = []
 
@@ -114,5 +144,5 @@ function pair(t:string) {
       }
       return { result, firstKey }
     }
-  , { result, firstKey: '' })
+    , { result, firstKey: '' })
 }

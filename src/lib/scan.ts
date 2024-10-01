@@ -14,9 +14,6 @@ export function scanSession(tools: ToolsConfig, depth=0): MonoTypeOperatorFuncti
   return source$ => source$.pipe(
     switchMap(session => {
 
-      console.log(process.env.OPENAI_API_KEY, process.env.ANTHROPIC_API_KEY)
-      console.log('DESDE LUEGO', process.env)
-
       const openai = new OpenAI(
         {
           baseURL: PORTKEY_LOCAL_URL,
