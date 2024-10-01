@@ -72,12 +72,6 @@ export function rebuildLeadingTrailing(leading: string | undefined, trailing: st
   )
 }
 
-export function normalizeLineBreaks(): OperatorFunction<string, string> {
-  return source$ => source$.pipe(
-    map(content => content.replaceAll(/\n{2,}/g, '\n\n'))
-  )
-}
-
 export function startEndSplit(text: string): { leading?: string, main: string, trailing?: string } {
 
   const leadingChunks = text.split(startMarker)
