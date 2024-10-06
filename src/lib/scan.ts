@@ -1,11 +1,8 @@
-import OpenAI from "openai";
-import { createHeaders } from "portkey-ai";
+import { OpenAI } from "openai";
 import { ChatCompletionMessageParam } from "openai/resources";
 import { MonoTypeOperatorFunction, catchError, from, map, of, switchMap } from "rxjs";
 import { flog } from "./log";
 import { ToolsConfig, runToolsIfNeeded } from "./tools";
-
-const PORTKEY_LOCAL_URL = 'http://127.0.0.1:8787/v1'
 
 export type Session = ChatCompletionMessageParam[]
 
@@ -14,17 +11,7 @@ export function scanSession(tools: ToolsConfig, depth=0): MonoTypeOperatorFuncti
   return source$ => source$.pipe(
     switchMap(session => {
 
-      const openai = new OpenAI(
-        {
-          baseURL: PORTKEY_LOCAL_URL,
-          defaultHeaders: createHeaders(
-            {
-              provider: 'openai',
-              apiKey: process.env.OPENAI_API_KEY,
-            }
-          )
-        }
-      )
+      const openai = new OpenAI()
       return from(
         openai.chat.completions.create(
           {
