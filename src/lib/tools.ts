@@ -9,7 +9,7 @@ type ApiTools = ChatCompletionTool[];
 
 type RawTool = {
   description: string;
-  parameters: Record<string, string>;
+  parameters?: Record<string, string>;
   command: string;
 }
 
@@ -58,7 +58,7 @@ export function parseToolsConfig(config: string) {
 
 function toConfig(acc: ToolsConfig, [name, tool]: [string, RawTool]) {
 
-  const { description, parameters, command } = tool;
+  const { description, parameters={}, command } = tool;
 
   const properties = Object.entries(parameters).reduce(
     (acc, [key, value]) => ({ ...acc, [key]: { type: "string", description: value } }
