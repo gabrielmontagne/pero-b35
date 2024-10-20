@@ -9,7 +9,7 @@ type ApiTools = ChatCompletionTool[];
 
 type RawTool = {
   description: string;
-  parameters: Record<string, string>;
+  parameters?: Record<string, string>;
   command: string;
 }
 
@@ -24,6 +24,9 @@ export type ToolsConfig = {
 type ToolResult = ChatCompletionToolMessageParam;
 
 export function readToolsConfig$(paths: string[]) {
+
+  if (!paths.length) return of(null)
+
   return combineLatest(
     paths.map(createInputText$)
   ).pipe(
@@ -44,7 +47,7 @@ export function readToolsConfig$(paths: string[]) {
           initial
         )
       }
-    )
+    ),
   )
 }
 
@@ -58,7 +61,7 @@ export function parseToolsConfig(config: string) {
 
 function toConfig(acc: ToolsConfig, [name, tool]: [string, RawTool]) {
 
-  const { description, parameters, command } = tool;
+  const { description, parameters = {}, command } = tool;
 
   const properties = Object.entries(parameters).reduce(
     (acc, [key, value]) => ({ ...acc, [key]: { type: "string", description: value } }
@@ -87,7 +90,8 @@ function toConfig(acc: ToolsConfig, [name, tool]: [string, RawTool]) {
   }
 }
 
-export function runToolsIfNeeded(commandByName: Record<string, string>): MonoTypeOperatorFunction<ChatCompletion> {
+export function runToolsIfNeeded(commandByName?: Record<string, string>): MonoTypeOperatorFunction<ChatCompletion> {
+  if (!commandByName) return source$ => source$
   return source$ => source$.pipe(
     switchMap(
       response => {
