@@ -7,7 +7,7 @@ import { ToolsConfig, runToolsIfNeeded } from "./tools";
 export type Session = ChatCompletionMessageParam[]
 
 
-export function scanSession(tools: ToolsConfig, depth=0): MonoTypeOperatorFunction<Session> {
+export function scanSession(tools: ToolsConfig | null, depth=0): MonoTypeOperatorFunction<Session> {
   return source$ => source$.pipe(
     switchMap(session => {
 
@@ -17,13 +17,17 @@ export function scanSession(tools: ToolsConfig, depth=0): MonoTypeOperatorFuncti
           {
             model: 'gpt-4o',
             messages: session,
-            tools: tools.api,
-            tool_choice: 'auto'
+            ...(
+              tools && {
+                tools: tools.api,
+                tool_choice: 'auto'
+              }
+            )
           }, 
         )
       ).pipe(
         flog('Raw response'),
-        runToolsIfNeeded(tools.commandByName),
+        runToolsIfNeeded(tools?.commandByName),
         map(response => response.choices.map(c => c.message)),
         map(choices => ([...session, ...choices])),
         catchError(e => {

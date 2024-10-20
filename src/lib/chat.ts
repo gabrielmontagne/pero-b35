@@ -11,6 +11,7 @@ interface ChatOptions extends Options {
   file: string,
   tools: string[]
   preamble: string[]
+  omitDefaultTools: boolean,
   outputOnly: boolean
 }
 
@@ -20,14 +21,25 @@ class ChatCommand<U extends ChatOptions> implements CommandModule<{}, U> {
   command = 'chat'
   describe = 'Run a chat.'
   builder(args: Argv): Argv<U> {
-    args.option('file', { string: true, alias: 'f', describe: 'file to read from - defaults to stdin' }),
-      args.option('tools', {
-        alias: 't',
-        describe: 'tools config file(s)',
-        type: 'string',
-        array: true,
-        default: [defaultToolsPath]
-      })
+    args.option('file', { string: true, alias: 'f', describe: 'file to read from - defaults to stdin' })
+
+    args.option('tools', {
+      alias: 't',
+      describe: 'tools config file(s)',
+      type: 'string',
+      array: true,
+      default: []
+    })
+
+    args.option(
+      'omit-default-tools',
+      {
+        boolean: true,
+        default: false,
+        describe: 'do not include the default tools'
+      }
+    )
+
     args.option(
       'preamble',
       {
@@ -51,14 +63,14 @@ class ChatCommand<U extends ChatOptions> implements CommandModule<{}, U> {
   }
 
   handler(args: ArgumentsCamelCase<U>) {
-    const { file, tools, preamble, outputOnly } = args
+    const { file, omitDefaultTools, tools, preamble, outputOnly } = args
 
     const input$ = createInputText$(file)
 
     combineLatest(
       {
         input: input$.pipe(map(startEndSplit)),
-        tools: readToolsConfig$(tools)
+        tools: readToolsConfig$([...(omitDefaultTools ? [] :  [defaultToolsPath]), ...tools])
       }
     )
       .pipe(
@@ -71,7 +83,6 @@ class ChatCommand<U extends ChatOptions> implements CommandModule<{}, U> {
                 scanSession(tools),
                 recombineWithOriginal(content, outputOnly),
                 rebuildLeadingTrailing(leading, trailing),
-                // normalizeLineBreaks(),
                 flog('Chat'),
               ))
             )
