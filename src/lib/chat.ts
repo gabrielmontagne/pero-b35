@@ -9,6 +9,7 @@ import { readToolsConfig$ } from "./tools"
 
 interface ChatOptions extends Options {
   file: string,
+  model: string,
   tools: string[]
   preamble: string[]
   omitDefaultTools: boolean,
@@ -22,6 +23,13 @@ class ChatCommand<U extends ChatOptions> implements CommandModule<{}, U> {
   describe = 'Run a chat.'
   builder(args: Argv): Argv<U> {
     args.option('file', { string: true, alias: 'f', describe: 'file to read from - defaults to stdin' })
+
+    args.option('model', {
+      alias: 'm',
+      describe: 'model to use',
+      type: 'string',
+      default: 'gpt-4o'
+    })
 
     args.option('tools', {
       alias: 't',
@@ -63,14 +71,14 @@ class ChatCommand<U extends ChatOptions> implements CommandModule<{}, U> {
   }
 
   handler(args: ArgumentsCamelCase<U>) {
-    const { file, omitDefaultTools, tools, preamble, outputOnly } = args
+    const { file, model, omitDefaultTools, tools, preamble, outputOnly } = args
 
     const input$ = createInputText$(file)
 
     combineLatest(
       {
         input: input$.pipe(map(startEndSplit)),
-        tools: readToolsConfig$([...(omitDefaultTools ? [] :  [defaultToolsPath]), ...tools])
+        tools: readToolsConfig$([...(omitDefaultTools ? [] : [defaultToolsPath]), ...tools])
       }
     )
       .pipe(
@@ -80,7 +88,7 @@ class ChatCommand<U extends ChatOptions> implements CommandModule<{}, U> {
               switchMap(content => of(content).pipe(
                 includePreamble(preamble),
                 parseSession(),
-                scanSession(tools),
+                scanSession(tools, model),
                 recombineWithOriginal(content, outputOnly),
                 rebuildLeadingTrailing(leading, trailing),
                 flog('Chat'),

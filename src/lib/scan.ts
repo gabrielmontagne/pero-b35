@@ -7,7 +7,7 @@ import { ToolsConfig, runToolsIfNeeded } from "./tools";
 export type Session = ChatCompletionMessageParam[]
 
 
-export function scanSession(tools: ToolsConfig | null, depth=0): MonoTypeOperatorFunction<Session> {
+export function scanSession(tools: ToolsConfig | null, model: string, depth = 0): MonoTypeOperatorFunction<Session> {
   return source$ => source$.pipe(
     switchMap(session => {
 
@@ -15,7 +15,7 @@ export function scanSession(tools: ToolsConfig | null, depth=0): MonoTypeOperato
       return from(
         openai.chat.completions.create(
           {
-            model: 'gpt-4o',
+            model,
             messages: session,
             ...(
               tools && {
@@ -23,7 +23,7 @@ export function scanSession(tools: ToolsConfig | null, depth=0): MonoTypeOperato
                 tool_choice: 'auto'
               }
             )
-          }, 
+          },
         )
       ).pipe(
         flog('Raw response'),
@@ -37,10 +37,10 @@ export function scanSession(tools: ToolsConfig | null, depth=0): MonoTypeOperato
           }
 
           // TODO: why is instanceof not working?
-          if (e.toolsMessages) { 
+          if (e.toolsMessages) {
             const toolMessages = e.toolsMessages
-            const sessionWithTools = [ ...session, ...toolMessages ]
-            return of([...sessionWithTools]).pipe(scanSession(tools, depth + 1))
+            const sessionWithTools = [...session, ...toolMessages]
+            return of([...sessionWithTools]).pipe(scanSession(tools, model, depth + 1))
 
           }
           throw e;
