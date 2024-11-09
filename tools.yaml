@@ -2,13 +2,13 @@ read_text_file:
   description: Read the contents of a text file, including code, markdown, and fountain files.
   parameters:
     file_path: The path to the file to read
-  command: cat {{file_path}}
+  command: cat "{{file_path}}"
 
 read_web_page:
   description: Read the contents of a web page
   parameters:
     url: The URL of the web page to read
-  command: elinks {{url}}
+  command: elinks "{{url}}"
 
 search_web:
   description: Search the web for a given query
@@ -20,4 +20,4 @@ read_pdf_file:
   description: Read the contents of a pdf file
   parameters:
     file_path: The path to the pdf file to read
-  command: pdftotext -layout -nopgbrk {{file_path}} -
+  command: pdftotext -layout -nopgbrk "{{file_path}}" -
