@@ -3,15 +3,22 @@ import { ChatCompletionMessageParam } from "openai/resources";
 import { MonoTypeOperatorFunction, catchError, from, map, of, switchMap } from "rxjs";
 import { flog } from "./log";
 import { ToolsConfig, runToolsIfNeeded } from "./tools";
+import dotenv from 'dotenv'; 
+
+dotenv.config()
 
 export type Session = ChatCompletionMessageParam[]
-
 
 export function scanSession(tools: ToolsConfig | null, model: string, depth = 0): MonoTypeOperatorFunction<Session> {
   return source$ => source$.pipe(
     switchMap(session => {
 
-      const openai = new OpenAI()
+      const openai = new OpenAI(
+        {
+          baseURL: "https://openrouter.ai/api/v1",
+          apiKey: process.env.OPENROUTER_API_KEY,
+        }
+      )
       return from(
         openai.chat.completions.create(
           {
