@@ -28,7 +28,7 @@ class ChatCommand<U extends ChatOptions> implements CommandModule<{}, U> {
       alias: 'm',
       describe: 'model to use',
       type: 'string',
-      default: 'anthropic/claude-3-opus:beta'
+      default: 'anthropic/claude-3.5-sonnet'
     })
 
     args.option('tools', {
