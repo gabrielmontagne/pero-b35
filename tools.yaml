@@ -4,6 +4,13 @@ read_text_file:
     file_path: The path to the file to read
   command: cat "{{file_path}}"
 
+write_to_text_file:
+  description: Write to a text file, overwriting its contents
+  parameters:
+    file_path: The path to the file to write to
+    text: The text to write to the file
+  command: echo "{{text}}" > "{{file_path}}"
+
 read_web_page:
   description: Read the contents of a web page
   parameters:
