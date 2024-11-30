@@ -49,8 +49,6 @@ export function parse(text: string): Session {
     },
     session
   )
-
-
 }
 
 export function includePreamble(preamble: string[]): OperatorFunction<string, string> {
@@ -87,40 +85,34 @@ export function startEndSplit(text: string): { leading?: string, main: string, t
 }
 
 export function parseSession(): OperatorFunction<string, Session> {
-  return source$ => source$.pipe(
-    map(parse)
-  )
+  return map(parse)
 }
 
 export function recombineWithOriginal(original: string, outputOnly = false): OperatorFunction<Session, string> {
-  return source$ => source$.pipe(
-    map((session) => {
-      const output = `${session.pop()?.content || '×'}`
-      if (outputOnly) return output
-      return `${original}\nA>>\n\n${output}\n\nQ>>\n\n`
-    })
-  )
+  return map((session) => {
+    const output = `${session.pop()?.content || '×'}`
+    if (outputOnly) return output
+    return `${original}\nA>>\n\n${output}\n\nQ>>\n\n`
+  })
 }
 
 export function recombineSession(): OperatorFunction<Session, string> {
-  return source$ => source$.pipe(
-    map(session => {
-      const result = session.reduceRight(
-        (acc, message, i) => {
-          const { role, content } = message;
-          if (!visibleRoles.has(role)) {
-            return acc
-          }
-          if (role === 'assistant' && message.tool_calls) {
-            return acc
-          }
-          const shouldShowHeader = i != 0 || !impliedInitialRole.has(role)
-          return `${shouldShowHeader ? roleToHeader[role] + '>>\n\n' : ''}${content}\n\n${acc}`
-        }, ''
-      )
-      return result
-    })
-  )
+  return map(session => {
+    const result = session.reduceRight(
+      (acc, message, i) => {
+        const { role, content } = message;
+        if (!visibleRoles.has(role)) {
+          return acc
+        }
+        if (role === 'assistant' && message.tool_calls) {
+          return acc
+        }
+        const shouldShowHeader = i != 0 || !impliedInitialRole.has(role)
+        return `${shouldShowHeader ? roleToHeader[role] + '>>\n\n' : ''}${content}\n\n${acc}`
+      }, ''
+    )
+    return result
+  })
 }
 
 function pair(t: string) {

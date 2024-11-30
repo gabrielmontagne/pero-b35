@@ -3,7 +3,9 @@ import { combineLatest, map, of, switchMap } from "rxjs"
 import { ArgumentsCamelCase, Argv, CommandModule, Options } from "yargs"
 import { createInputText$, out } from "./io"
 import { flog } from "./log"
-import { includePreamble, parseSession, rebuildLeadingTrailing, recombineWithOriginal, startEndSplit } from "./restructure"
+import {
+  includePreamble, parseSession, rebuildLeadingTrailing, recombineWithOriginal, startEndSplit
+} from "./restructure"
 import { scanSession } from "./scan"
 import { readToolsConfig$ } from "./tools"
 

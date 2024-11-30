@@ -3,9 +3,6 @@ import { ChatCompletionMessageParam } from "openai/resources";
 import { MonoTypeOperatorFunction, catchError, from, map, of, switchMap } from "rxjs";
 import { flog } from "./log";
 import { ToolsConfig, runToolsIfNeeded } from "./tools";
-import dotenv from 'dotenv'; 
-
-dotenv.config()
 
 export type Session = ChatCompletionMessageParam[]
 
