@@ -36,7 +36,7 @@ export function scanSession(tools: ToolsConfig | null, model: string, depth = 0)
         map(choices => ([...session, ...choices])),
         catchError(e => {
 
-          if (depth > 3) {
+          if (depth > 20) {
             throw new Error('Too many tool calls')
           }
 
