@@ -28,3 +28,9 @@ read_pdf_file:
   parameters:
     file_path: The path to the pdf file to read
   command: pdftotext -layout -nopgbrk "{{file_path}}" -
+
+ask_for_supervisor_feedback:
+  description: Ask for expert human feedback
+  parameters:
+    query: The question you'd like feedback on.
+  command: echo "{{query}}" | vipe
