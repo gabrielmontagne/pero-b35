@@ -3,6 +3,7 @@ import { OperatorFunction, combineLatest, map } from "rxjs";
 import { createInputTextFiles$ } from "./io";
 import { flog } from "./log";
 import { Session } from "./scan";
+import { interpolate } from "./interpolate";
 
 const startMarker = /^__START__\s*\n/m
 const endMarker = /^__END__\s*\n/m
@@ -36,12 +37,12 @@ export function parse(text: string): Session {
       } else if (next.key == 'Q') {
         return [
           ...acc,
-          { role: 'user' as const, content: next.content }
+          { role: 'user' as const, content: interpolate(next.content) }
         ]
       } else if (next.key == 'A') {
         return [
           ...acc,
-          { role: 'assistant' as const, content: next.content }
+          { role: 'assistant' as const, content:next.content}
         ]
       }
       return acc
