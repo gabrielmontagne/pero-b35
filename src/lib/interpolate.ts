@@ -1,4 +1,5 @@
 import { promises as fs } from 'fs';
+import * as path from "path";
 import { ChatCompletionContentPart, ChatCompletionContentPartImage, ChatCompletionContentPartText } from "openai/resources";
 
 const tagToParser = {
@@ -10,7 +11,7 @@ const tag = /\[(?<type>\w+)\[(?<content>[^\]]+)\]\]/g;
 
 export async function interpolate(text: string) {
 
-  const parts: ChatCompletionContentPart[] = [ ]
+  const parts: ChatCompletionContentPart[] = []
 
   let match: RegExpExecArray | null
   let lastIndex = 0
@@ -36,7 +37,7 @@ export async function interpolate(text: string) {
 
 
 function packText(text: string) {
-  const result:ChatCompletionContentPartText = { type: 'text', text }
+  const result: ChatCompletionContentPartText = { type: 'text', text }
   return result
 }
 
@@ -44,8 +45,8 @@ function packText(text: string) {
 async function loadText(path: string) {
   try {
     const fileContent = await fs.readFile(path, 'utf-8');
-    const result: ChatCompletionContentPartText = { 
-      type: 'text', 
+    const result: ChatCompletionContentPartText = {
+      type: 'text',
       text: `\nFILE: ${path}\n<<<\n${fileContent}\n<<<\n\n`
     };
     return result;
@@ -58,14 +59,18 @@ async function loadText(path: string) {
 async function loadImage(content: string) {
   const isRemote = /^https?:/
   if (isRemote.test(content)) {
-    const result:ChatCompletionContentPartImage = { type: 'image_url', image_url: { url: content } }
+    const result: ChatCompletionContentPartImage = { type: 'image_url', image_url: { url: content } }
     return result
   }
-  console.error('LOAD LOCAL IMAGE NOT IMPLEMENTED', content)
-  throw new Error('Not implemented')
-  // return result
+
+  const fileContent = await fs.readFile(content);
+  const base64 = fileContent.toString('base64')
+  const mimeType = path.extname(content).slice(1)
+  const dataUri = `data:image/${mimeType};base64,${base64}`
+  const result: ChatCompletionContentPartImage = { type: 'image_url', image_url: { url: dataUri } }
+  return result
 }
 
-function isKnownTag(tag:string): tag is keyof typeof tagToParser {
+function isKnownTag(tag: string): tag is keyof typeof tagToParser {
   return tag in tagToParser
 }
