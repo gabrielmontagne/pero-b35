@@ -12,19 +12,33 @@ describe('parse', () => {
     const result = parse('foo');
     expect(result).toEqual(
       [
-        { role: 'user' as const, content: 'foo' }
+        {
+          role: 'user' as const, content:
+            [
+              { type: 'text', text: 'foo' }
+            ]
+        }
       ]
     );
   });
 
   it('should understand a system message when it comes first before the question', () => {
-        
+
     expect(
-    parse("replies are always in absurdly obscure language.\n\nQ>> \n\nwho was Patas Verdes? \n")
+      parse("replies are always in absurdly obscure language.\n\nQ>> \n\nwho was Patas Verdes? \n")
     ).toEqual(
       [
         { role: 'system' as const, content: 'replies are always in absurdly obscure language.' },
-        { role: 'user' as const, content: 'who was Patas Verdes?' }
+        {
+          role: 'user' as const, content:
+            [
+              {
+                type: 'text', text:
+                  'who was Patas Verdes?'
+              }
+            ]
+
+        }
       ]
     )
   })
@@ -97,17 +111,17 @@ describe('recombineSession', () => {
             { role: 'user' as const, content: 'foo' },
             { role: 'assistant' as const, content: 'bar' },
             { role: 'user' as const, content: 'baz' }
-          ], 
+          ],
           b: [
             { role: 'system' as const, content: 'soo' },
             { role: 'user' as const, content: 'too' },
             { role: 'assistant' as const, content: 'aoo' },
-          ], 
+          ],
         }
         const source = cold('a-b-|', inputs).pipe(recombineSession());
         expectObservable(source)
           .toBe(
-            'a-b-|', 
+            'a-b-|',
             {
               a: `foo\n\nA>>\n\nbar\n\nQ>>\n\nbaz\n\n`,
               b: `soo\n\nQ>>\n\ntoo\n\nA>>\n\naoo\n\n`

@@ -1,8 +1,9 @@
 import { ChatCompletionRole } from "openai/resources";
-import { OperatorFunction, combineLatest, map } from "rxjs";
+import { OperatorFunction, combineLatest, map, switchMap } from "rxjs";
 import { createInputTextFiles$ } from "./io";
 import { flog } from "./log";
 import { Session } from "./scan";
+import { interpolate } from "./interpolate";
 
 const startMarker = /^__START__\s*\n/m
 const endMarker = /^__END__\s*\n/m
@@ -18,37 +19,24 @@ const roleToHeader: Record<ChatCompletionRole, string> = {
 const visibleRoles = new Set<ChatCompletionRole>(['user', 'assistant', 'system'])
 const impliedInitialRole = new Set<ChatCompletionRole>(['system', 'user'])
 
-export function parse(text: string): Session {
+export async function parse(text: string) {
 
   const { result, firstKey } = pair(text)
   result[0].key = firstKey == 'Q' ? 'S' : 'Q'
   const session: Session = []
 
-  return result.filter(r => r.content).reduce(
-    (acc, next) => {
-      if (!next.content) return acc
-      if (next.key == 'S') {
-        return [
-          ...acc,
-          { role: 'system' as const, content: next.content }
-        ]
+  for (const next of result) {
+    if (!next.content) continue
+    if (next.key == 'S') {
+      session.push({ role: 'system' as const, content: next.content })
+    } else if (next.key == 'Q') {
+      session.push({ role: 'user' as const, content: await interpolate(next.content) })
+    } else if (next.key == 'A') {
+      session.push({ role: 'assistant' as const, content: next.content })
+    }
+  }
 
-      } else if (next.key == 'Q') {
-        return [
-          ...acc,
-          { role: 'user' as const, content: next.content }
-        ]
-      } else if (next.key == 'A') {
-        return [
-          ...acc,
-          { role: 'assistant' as const, content: next.content }
-        ]
-      }
-      return acc
-
-    },
-    session
-  )
+  return session
 }
 
 export function includePreamble(preamble: string[]): OperatorFunction<string, string> {
@@ -85,7 +73,7 @@ export function startEndSplit(text: string): { leading?: string, main: string, t
 }
 
 export function parseSession(): OperatorFunction<string, Session> {
-  return map(parse)
+  return source$ => source$.pipe(switchMap(parse), flog('Parse'))
 }
 
 export function recombineWithOriginal(original: string, outputOnly = false): OperatorFunction<Session, string> {

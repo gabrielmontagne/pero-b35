@@ -95,7 +95,11 @@ export function runToolsIfNeeded(commandByName?: Record<string, string>): MonoTy
   return source$ => source$.pipe(
     switchMap(
       response => {
-        const firstChoice = response.choices[0]
+        const { choices } = response
+        if (!choices) {
+          console.error('No choices in response', response)
+        } 
+        const firstChoice = choices[0]
         const reason = firstChoice.finish_reason
 
         if (reason === 'tool_calls') {
