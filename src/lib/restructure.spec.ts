@@ -17,7 +17,6 @@ describe('parse', () => {
             [
               { type: 'text', text: 'foo' }
             ]
-
         }
       ]
     );
