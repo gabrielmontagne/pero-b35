@@ -21,7 +21,7 @@ export async function interpolate(text: string) {
     const fullTag = match[0]
     const { type, content } = groups as { type: string, content: string }
     const leadingText = text.slice(lastIndex, index)
-    parts.push(packText(leadingText))
+    if (leadingText) parts.push(packText(leadingText))
 
     if (isKnownTag(type)) {
       const parser = tagToParser[type]
@@ -31,7 +31,8 @@ export async function interpolate(text: string) {
     lastIndex = index + fullTag.length
   }
 
-  parts.push(packText(text.slice(lastIndex)))
+  const remeainingText = text.slice(lastIndex)
+  if (remeainingText) parts.push(packText(remeainingText))
   return parts
 }
 
