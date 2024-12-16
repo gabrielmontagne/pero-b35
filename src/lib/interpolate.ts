@@ -47,7 +47,7 @@ async function loadText(path: string) {
     const fileContent = await fs.readFile(path, 'utf-8');
     const result: ChatCompletionContentPartText = {
       type: 'text',
-      text: `\nFILE: ${path}\n<<<\n${fileContent}\n<<<\n\n`
+      text: `<FILE path="${path}">${fileContent}</FILE>`
     };
     return result;
   } catch (error) {
