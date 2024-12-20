@@ -9,7 +9,10 @@ write_to_text_file:
   parameters:
     file_path: The path to the file to write to
     text: The text to write to the file
-  command: echo "{{text}}" > "{{file_path}}"
+  command: |
+    cat <<'EOF' > "{{file_path}}"
+    {{text}}
+    EOF
 
 read_web_page:
   description: Read the contents of a web page
