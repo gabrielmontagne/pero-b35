@@ -35,5 +35,5 @@ read_pdf_file:
 ask_for_supervisor_feedback:
   description: Ask for expert human feedback
   parameters:
-    query: The question you'd like feedback on.
+    query: The question (with context) you'd like feedback on.
   command: echo "{{query}}" | vipe
