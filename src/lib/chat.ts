@@ -9,13 +9,25 @@ import {
 import { scanSession } from "./scan"
 import { readToolsConfig$ } from "./tools"
 
+const gateways = {
+  'ollama': {
+    baseURL: 'http://localhost:11434/v1',
+    apiKey: 'ollama'
+  },
+  'openrouter': {
+    baseURL: "https://openrouter.ai/api/v1",
+    apiKey: process.env.OPENROUTER_API_KEY as string,
+  }
+}
+
 interface ChatOptions extends Options {
   file: string,
   model: string,
   tools: string[]
   preamble: string[]
   omitDefaultTools: boolean,
-  outputOnly: boolean
+  outputOnly: boolean,
+  gateway: keyof typeof gateways
 }
 
 const defaultToolsPath = path.join(__dirname, '..', '..', 'tools.yaml')
@@ -51,6 +63,17 @@ class ChatCommand<U extends ChatOptions> implements CommandModule<{}, U> {
     )
 
     args.option(
+      'gateway',
+      {
+        string: true,
+        describe: 'gateway provider',
+        alias: 'g',
+        choices: Object.keys(gateways),
+        default: 'openrouter'
+      }
+    )
+
+    args.option(
       'preamble',
       {
         string: true,
@@ -60,6 +83,7 @@ class ChatCommand<U extends ChatOptions> implements CommandModule<{}, U> {
         default: []
       }
     )
+
     args.option(
       'output-only',
       {
@@ -73,7 +97,10 @@ class ChatCommand<U extends ChatOptions> implements CommandModule<{}, U> {
   }
 
   handler(args: ArgumentsCamelCase<U>) {
-    const { file, model, omitDefaultTools, tools, preamble, outputOnly } = args
+    const { file, model, gateway, omitDefaultTools, tools, preamble, outputOnly
+    } = args
+
+    const gatewayConfig = gateways[gateway]
 
     const input$ = createInputText$(file)
 
@@ -90,7 +117,7 @@ class ChatCommand<U extends ChatOptions> implements CommandModule<{}, U> {
               switchMap(content => of(content).pipe(
                 includePreamble(preamble),
                 parseSession(),
-                scanSession(tools, model),
+                scanSession({ tools, model, gatewayConfig }),
                 recombineWithOriginal(content, outputOnly),
                 rebuildLeadingTrailing(leading, trailing),
                 flog('Chat'),

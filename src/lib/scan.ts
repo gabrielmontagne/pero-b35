@@ -1,4 +1,4 @@
-import { OpenAI } from "openai";
+import { ClientOptions, OpenAI } from "openai";
 import { ChatCompletionMessageParam } from "openai/resources";
 import { MonoTypeOperatorFunction, catchError, from, map, of, switchMap } from "rxjs";
 import { flog } from "./log";
@@ -6,28 +6,35 @@ import { ToolsConfig, runToolsIfNeeded } from "./tools";
 
 export type Session = ChatCompletionMessageParam[]
 
-export function scanSession(tools: ToolsConfig | null, model: string, depth = 0): MonoTypeOperatorFunction<Session> {
+export function scanSession(
+
+  {
+    tools, model,
+    gatewayConfig,
+    depth = 0
+  }: {
+    tools: ToolsConfig | null,
+    model: string,
+    depth?: number
+    gatewayConfig: { baseURL: string, apiKey: string }
+  }
+): MonoTypeOperatorFunction<Session> {
   return source$ => source$.pipe(
     switchMap(session => {
-
-      const openai = new OpenAI(
-        {
-          baseURL: "https://openrouter.ai/api/v1",
-          apiKey: process.env.OPENROUTER_API_KEY,
-        }
-      )
+      const openai = new OpenAI(gatewayConfig)
       return from(
         openai.chat.completions.create(
           {
             model,
             messages: session,
+            include_reasoning: true,// I know I know
             ...(
               tools && {
                 tools: tools.api,
                 tool_choice: 'auto'
               }
             )
-          },
+          } as OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming
         )
       ).pipe(
         flog('Raw response'),
@@ -44,7 +51,8 @@ export function scanSession(tools: ToolsConfig | null, model: string, depth = 0)
           if (e.toolsMessages) {
             const toolMessages = e.toolsMessages
             const sessionWithTools = [...session, ...toolMessages]
-            return of([...sessionWithTools]).pipe(scanSession(tools, model, depth + 1))
+            return of([...sessionWithTools]).pipe(
+              scanSession({ tools, model, depth: depth + 1, gatewayConfig }))
 
           }
           throw e;
