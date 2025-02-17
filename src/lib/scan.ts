@@ -1,22 +1,25 @@
 import { ClientOptions, OpenAI } from "openai";
-import { ChatCompletionMessageParam } from "openai/resources";
-import { MonoTypeOperatorFunction, catchError, from, map, of, switchMap } from "rxjs";
-import { flog } from "./log";
+import { ChatCompletion, ChatCompletionMessageParam } from "openai/resources";
+import { MonoTypeOperatorFunction, catchError, from, map, of, switchMap, tap } from "rxjs";
+import { flog, logToFile } from "./log";
 import { ToolsConfig, runToolsIfNeeded } from "./tools";
+import { includePreamble } from "./restructure";
+import { log } from "console";
 
 export type Session = ChatCompletionMessageParam[]
 
 export function scanSession(
-
   {
     tools, model,
     gatewayConfig,
-    depth = 0
+    depth = 0,
+    includeReasoning
   }: {
     tools: ToolsConfig | null,
     model: string,
     depth?: number
-    gatewayConfig: { baseURL: string, apiKey: string }
+    gatewayConfig: { baseURL: string, apiKey: string },
+    includeReasoning?: boolean
   }
 ): MonoTypeOperatorFunction<Session> {
   return source$ => source$.pipe(
@@ -27,7 +30,7 @@ export function scanSession(
           {
             model,
             messages: session,
-            include_reasoning: true,// I know I know
+            ...(includeReasoning && { include_reasoning: true }),
             ...(
               tools && {
                 tools: tools.api,
@@ -39,6 +42,7 @@ export function scanSession(
       ).pipe(
         flog('Raw response'),
         runToolsIfNeeded(tools?.commandByName),
+        tap(logReasoningIfPresent),
         map(response => response.choices.map(c => c.message)),
         map(choices => ([...session, ...choices])),
         catchError(e => {
@@ -60,4 +64,15 @@ export function scanSession(
       )
     }
     ))
+}
+
+function logReasoningIfPresent(response: ChatCompletion) {
+  response.choices.forEach(
+    c => {
+      const m = c.message
+      if ('reasoning' in m) {
+        logToFile(`[REASONING: ${m.reasoning}]`)
+      }
+    }
+  )
 }

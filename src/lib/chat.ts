@@ -17,6 +17,10 @@ const gateways = {
   'openrouter': {
     baseURL: "https://openrouter.ai/api/v1",
     apiKey: process.env.OPENROUTER_API_KEY as string,
+  },
+  'gemini': {
+    baseURL: "https://generativelanguage.googleapis.com/v1beta/openai/",
+    apiKey: process.env.GEMINI_API_KEY as string,
   }
 }
 
@@ -27,7 +31,8 @@ interface ChatOptions extends Options {
   preamble: string[]
   omitDefaultTools: boolean,
   outputOnly: boolean,
-  gateway: keyof typeof gateways
+  gateway: keyof typeof gateways,
+  includeReasoning: boolean
 }
 
 const defaultToolsPath = path.join(__dirname, '..', '..', 'tools.yaml')
@@ -93,31 +98,44 @@ class ChatCommand<U extends ChatOptions> implements CommandModule<{}, U> {
         describe: 'output only, do not return the chat'
       }
     )
+
+    args.option(
+      'include-reasoning',
+      {
+        boolean: true,
+        default: false,
+        alias: 'r',
+        describe: 'include reasoning in the output'
+      }
+    )
+
     return args as Argv<U>
   }
 
   handler(args: ArgumentsCamelCase<U>) {
-    const { file, model, gateway, omitDefaultTools, tools, preamble, outputOnly
+    const { file, model, gateway, omitDefaultTools, tools, preamble, outputOnly, includeReasoning
     } = args
 
-    const gatewayConfig = gateways[gateway]
 
     const input$ = createInputText$(file)
 
     combineLatest(
       {
+        gatewayConfig: of(gateways[gateway]),
         input: input$.pipe(map(startEndSplit)),
         tools: readToolsConfig$([...(omitDefaultTools ? [] : [defaultToolsPath]), ...tools])
       }
     )
       .pipe(
+        flog('Chat'),
         switchMap(
-          ({ input: { main, leading, trailing }, tools }) => {
+          ({ input: { main, leading, trailing }, tools,
+            gatewayConfig }) => {
             return of(main).pipe(
               switchMap(content => of(content).pipe(
                 includePreamble(preamble),
                 parseSession(),
-                scanSession({ tools, model, gatewayConfig }),
+                scanSession({ tools, model, gatewayConfig, includeReasoning }),
                 recombineWithOriginal(content, outputOnly),
                 rebuildLeadingTrailing(leading, trailing),
                 flog('Chat'),

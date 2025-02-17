@@ -19,7 +19,7 @@ export function flog<T>(context: string): MonoTypeOperatorFunction<T> {
   )
 }
 
-function logToFile(content: string) {
+export function logToFile(content: string) {
   try {
     fs.appendFileSync(logFilePath, `${content}\n`)
   } catch (e) {
