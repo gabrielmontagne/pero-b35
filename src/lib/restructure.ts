@@ -1,7 +1,7 @@
 import { ChatCompletionRole } from "openai/resources";
 import { OperatorFunction, combineLatest, map, switchMap } from "rxjs";
 import { createInputTextFiles$ } from "./io";
-import { flog } from "./log";
+import { flog, logToFile } from "./log";
 import { Session } from "./scan";
 import { interpolate } from "./interpolate";
 
@@ -76,9 +76,11 @@ export function parseSession(): OperatorFunction<string, Session> {
   return source$ => source$.pipe(switchMap(parse), flog('Parse'))
 }
 
-export function recombineWithOriginal(original: string, outputOnly = false): OperatorFunction<Session, string> {
+export function recombineWithOriginal(
+  original: string, outputOnly = false, 
+  inlineThink = false
+): OperatorFunction<Session, string> {
   return map((session) => {
-
     const last = session.pop()
 
     if (!last) return '★'
@@ -86,7 +88,11 @@ export function recombineWithOriginal(original: string, outputOnly = false): Ope
     let output = `${last.content || '×'}`
 
     if ('reasoning' in last) {
-      output = `<think>\n${last.reasoning}\n</think>\n\n${output}`
+      if (inlineThink) {
+        output = `<think>\n${last.reasoning}\n</think>\n\n${output}`
+      } else {
+        logToFile(`<think>\n${last.reasoning}\n</think>\n\n`)
+      }
     }
 
     if (outputOnly) return output

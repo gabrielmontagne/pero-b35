@@ -1,7 +1,7 @@
 import { OpenAI } from "openai";
-import { ChatCompletion, ChatCompletionMessageParam } from "openai/resources";
-import { MonoTypeOperatorFunction, catchError, from, map, of, switchMap, tap } from "rxjs";
-import { flog, logToFile } from "./log";
+import { ChatCompletionMessageParam } from "openai/resources";
+import { MonoTypeOperatorFunction, catchError, from, map, of, switchMap } from "rxjs";
+import { flog } from "./log";
 import { ToolsConfig, runToolsIfNeeded } from "./tools";
 
 export type Session = ChatCompletionMessageParam[]

@@ -33,6 +33,7 @@ interface ChatOptions extends Options {
   outputOnly: boolean,
   gateway: keyof typeof gateways,
   includeReasoning: boolean
+  inlineThink: boolean
 }
 
 const defaultToolsPath = path.join(__dirname, '..', '..', 'tools.yaml')
@@ -100,6 +101,16 @@ class ChatCommand<U extends ChatOptions> implements CommandModule<{}, U> {
     )
 
     args.option(
+      'inline-think',
+      {
+        boolean: true,
+        default: false,
+        alias: 'i',
+        describe: 'inline <think> reasoning blocks, if present'
+      }
+    )
+
+    args.option(
       'include-reasoning',
       {
         boolean: true,
@@ -113,7 +124,8 @@ class ChatCommand<U extends ChatOptions> implements CommandModule<{}, U> {
   }
 
   handler(args: ArgumentsCamelCase<U>) {
-    const { file, model, gateway, omitDefaultTools, tools, preamble, outputOnly, includeReasoning
+    const { file, model, gateway, omitDefaultTools, tools, preamble, 
+      outputOnly, includeReasoning, inlineThink
     } = args
 
 
@@ -136,7 +148,7 @@ class ChatCommand<U extends ChatOptions> implements CommandModule<{}, U> {
                 includePreamble(preamble),
                 parseSession(),
                 scanSession({ tools, model, gatewayConfig, includeReasoning }),
-                recombineWithOriginal(content, outputOnly),
+                recombineWithOriginal(content, outputOnly, inlineThink),
                 rebuildLeadingTrailing(leading, trailing),
                 flog('Chat'),
               ))
