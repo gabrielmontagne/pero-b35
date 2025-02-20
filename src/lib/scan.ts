@@ -1,10 +1,8 @@
-import { ClientOptions, OpenAI } from "openai";
+import { OpenAI } from "openai";
 import { ChatCompletion, ChatCompletionMessageParam } from "openai/resources";
 import { MonoTypeOperatorFunction, catchError, from, map, of, switchMap, tap } from "rxjs";
 import { flog, logToFile } from "./log";
 import { ToolsConfig, runToolsIfNeeded } from "./tools";
-import { includePreamble } from "./restructure";
-import { log } from "console";
 
 export type Session = ChatCompletionMessageParam[]
 
@@ -42,7 +40,6 @@ export function scanSession(
       ).pipe(
         flog('Raw response'),
         runToolsIfNeeded(tools?.commandByName),
-        tap(logReasoningIfPresent),
         map(response => response.choices.map(c => c.message)),
         map(choices => ([...session, ...choices])),
         catchError(e => {
@@ -51,7 +48,6 @@ export function scanSession(
             throw new Error('Too many tool calls')
           }
 
-          // TODO: why is instanceof not working?
           if (e.toolsMessages) {
             const toolMessages = e.toolsMessages
             const sessionWithTools = [...session, ...toolMessages]
@@ -64,15 +60,4 @@ export function scanSession(
       )
     }
     ))
-}
-
-function logReasoningIfPresent(response: ChatCompletion) {
-  response.choices.forEach(
-    c => {
-      const m = c.message
-      if ('reasoning' in m) {
-        logToFile(`[REASONING: ${m.reasoning}]`)
-      }
-    }
-  )
 }

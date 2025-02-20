@@ -78,7 +78,17 @@ export function parseSession(): OperatorFunction<string, Session> {
 
 export function recombineWithOriginal(original: string, outputOnly = false): OperatorFunction<Session, string> {
   return map((session) => {
-    const output = `${session.pop()?.content || '×'}`
+
+    const last = session.pop()
+
+    if (!last) return '★'
+
+    let output = `${last.content || '×'}`
+
+    if ('reasoning' in last) {
+      output = `<think>\n${last.reasoning}\n</think>\n\n${output}`
+    }
+
     if (outputOnly) return output
     return `${original}\nA>>\n\n${output}\n\nQ>>\n\n`
   })
