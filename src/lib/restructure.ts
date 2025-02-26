@@ -1,9 +1,9 @@
-import { ChatCompletionRole } from "openai/resources";
-import { OperatorFunction, combineLatest, map, switchMap } from "rxjs";
-import { createInputTextFiles$ } from "./io";
-import { flog } from "./log";
-import { Session } from "./scan";
-import { interpolate } from "./interpolate";
+import { ChatCompletionRole } from 'openai/resources'
+import { OperatorFunction, combineLatest, map, switchMap } from 'rxjs'
+import { createInputTextFiles$ } from './io'
+import { flog } from './log'
+import { Session } from './scan'
+import { interpolate } from './interpolate'
 
 const startMarker = /^__START__\s*\n/m
 const endMarker = /^__END__\s*\n/m
@@ -13,14 +13,17 @@ const roleToHeader: Record<ChatCompletionRole, string> = {
   user: 'Q',
   assistant: 'A',
   tool: 'T',
-  function: 'F'
+  function: 'F',
 }
 
-const visibleRoles = new Set<ChatCompletionRole>(['user', 'assistant', 'system'])
+const visibleRoles = new Set<ChatCompletionRole>([
+  'user',
+  'assistant',
+  'system',
+])
 const impliedInitialRole = new Set<ChatCompletionRole>(['system', 'user'])
 
 export async function parse(text: string) {
-
   const { result, firstKey } = pair(text)
   result[0].key = firstKey == 'Q' ? 'S' : 'Q'
   const session: Session = []
@@ -30,7 +33,10 @@ export async function parse(text: string) {
     if (next.key == 'S') {
       session.push({ role: 'system' as const, content: next.content })
     } else if (next.key == 'Q') {
-      session.push({ role: 'user' as const, content: await interpolate(next.content) })
+      session.push({
+        role: 'user' as const,
+        content: await interpolate(next.content),
+      })
     } else if (next.key == 'A') {
       session.push({ role: 'assistant' as const, content: next.content })
     }
@@ -39,27 +45,39 @@ export async function parse(text: string) {
   return session
 }
 
-export function includePreamble(preamble: string[]): OperatorFunction<string, string> {
-  return (source$) => combineLatest({
-    preamble: createInputTextFiles$(preamble),
-    main: source$
-  }).pipe(
-    flog(`Include preamble ${preamble.join(',')}`),
-    map(
-      ({ preamble, main }) => `${preamble}\n\n${main}`
+export function includePreamble(
+  preamble: string[]
+): OperatorFunction<string, string> {
+  return (source$) =>
+    combineLatest({
+      preamble: createInputTextFiles$(preamble),
+      main: source$,
+    }).pipe(
+      flog(`Include preamble ${preamble.join(',')}`),
+      map(({ preamble, main }) => `${preamble}\n\n${main}`)
     )
-  )
 }
 
-export function rebuildLeadingTrailing(leading: string | undefined, trailing: string | undefined): OperatorFunction<string, string> {
-  return source$ => source$.pipe(
-    map(content => `${leading ? `${leading}\n__START__\n\n` : ''
-      }${content}${trailing ? `\n__END__\n\n${trailing}` : ''}`)
-  )
+export function rebuildLeadingTrailing(
+  leading: string | undefined,
+  trailing: string | undefined
+): OperatorFunction<string, string> {
+  return (source$) =>
+    source$.pipe(
+      map(
+        (content) =>
+          `${
+            leading ? `${leading}\n__START__\n\n` : ''
+          }${content}${trailing ? `\n__END__\n\n${trailing}` : ''}`
+      )
+    )
 }
 
-export function startEndSplit(text: string): { leading?: string, main: string, trailing?: string } {
-
+export function startEndSplit(text: string): {
+  leading?: string
+  main: string
+  trailing?: string
+} {
   const leadingChunks = text.split(startMarker)
   const tail = leadingChunks.pop()
   const trailingChunks = tail?.split(endMarker)
@@ -67,16 +85,21 @@ export function startEndSplit(text: string): { leading?: string, main: string, t
 
   return {
     main,
-    ...leadingChunks.length && { leading: leadingChunks.join('__START__\n') },
-    ...trailingChunks?.length && { trailing: trailingChunks.join('__END__\n') }
+    ...(leadingChunks.length && { leading: leadingChunks.join('__START__\n') }),
+    ...(trailingChunks?.length && {
+      trailing: trailingChunks.join('__END__\n'),
+    }),
   }
 }
 
 export function parseSession(): OperatorFunction<string, Session> {
-  return source$ => source$.pipe(switchMap(parse), flog('Parse'))
+  return (source$) => source$.pipe(switchMap(parse), flog('Parse'))
 }
 
-export function recombineWithOriginal(original: string, outputOnly = false): OperatorFunction<Session, string> {
+export function recombineWithOriginal(
+  original: string,
+  outputOnly = false
+): OperatorFunction<Session, string> {
   return map((session) => {
     const output = `${session.pop()?.content || '×'}`
     if (outputOnly) return output
@@ -85,44 +108,42 @@ export function recombineWithOriginal(original: string, outputOnly = false): Ope
 }
 
 export function recombineSession(): OperatorFunction<Session, string> {
-  return map(session => {
-    const result = session.reduceRight(
-      (acc, message, i) => {
-        const { role, content } = message;
-        if (!visibleRoles.has(role)) {
-          return acc
-        }
-        if (role === 'assistant' && message.tool_calls) {
-          return acc
-        }
-        const shouldShowHeader = i != 0 || !impliedInitialRole.has(role)
-        return `${shouldShowHeader ? roleToHeader[role] + '>>\n\n' : ''}${content}\n\n${acc}`
-      }, ''
-    )
+  return map((session) => {
+    const result = session.reduceRight((acc, message, i) => {
+      const { role, content } = message
+      if (!visibleRoles.has(role)) {
+        return acc
+      }
+      if (role === 'assistant' && message.tool_calls) {
+        return acc
+      }
+      const shouldShowHeader = i != 0 || !impliedInitialRole.has(role)
+      return `${shouldShowHeader ? roleToHeader[role] + '>>\n\n' : ''}${content}\n\n${acc}`
+    }, '')
     return result
   })
 }
 
 function pair(t: string) {
-
-  const result: Partial<{ key: string, content: string }>[] = []
+  const result: Partial<{ key: string; content: string }>[] = []
 
   return t.split(/^(\w)>>/m).reduceRight(
     (acc, next, i) => {
       const { result, firstKey: lastFirstKey } = acc
-      const isKey = i % 2 == 1;
+      const isKey = i % 2 == 1
       const clean = next.trim()
 
       let firstKey = lastFirstKey
       if (!isKey) {
-        const index = i / 2;
+        const index = i / 2
         result[index] = { content: clean }
       } else {
-        const index = i / 2 + .5
-        firstKey = clean;
+        const index = i / 2 + 0.5
+        firstKey = clean
         result[index].key = clean
       }
       return { result, firstKey }
-    }
-    , { result, firstKey: '' })
+    },
+    { result, firstKey: '' }
+  )
 }
