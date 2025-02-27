@@ -44,7 +44,6 @@ export function scanSession({
         ).pipe(
           flog('Raw response'),
           runToolsIfNeeded(tools?.commandByName),
-          tap(logReasoningIfPresent),
           map((response) => response.choices.map((c) => c.message)),
           map((choices) => [...session, ...choices]),
           catchError((e) => {
@@ -64,13 +63,4 @@ export function scanSession({
         )
       })
     )
-}
-
-function logReasoningIfPresent(response: ChatCompletion) {
-  response.choices.forEach((c) => {
-    const m = c.message
-    if ('reasoning' in m) {
-      logToFile(`[REASONING: ${m.reasoning}]`)
-    }
-  })
 }

@@ -138,8 +138,8 @@ class ChatCommand<U extends ChatOptions> implements CommandModule<{}, U> {
         switchMap(
           ({ input: { main, leading, trailing }, tools, gatewayConfig }) => {
             return of(main).pipe(
-              switchMap((content) =>
-                of(content).pipe(
+              switchMap((original) =>
+                of(original).pipe(
                   includePreamble(preamble),
                   parseSession(),
                   flog('Session'),
@@ -149,7 +149,7 @@ class ChatCommand<U extends ChatOptions> implements CommandModule<{}, U> {
                     gatewayConfig,
                     includeReasoning,
                   }),
-                  recombineWithOriginal(content, outputOnly),
+                  recombineWithOriginal({ original, outputOnly, includeReasoning }),
                   rebuildLeadingTrailing(leading, trailing),
                   flog('Chat')
                 )

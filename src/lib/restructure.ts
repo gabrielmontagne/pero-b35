@@ -1,7 +1,7 @@
 import { ChatCompletionRole } from 'openai/resources'
 import { OperatorFunction, combineLatest, map, switchMap } from 'rxjs'
 import { createInputTextFiles$ } from './io'
-import { flog } from './log'
+import { flog, logToFile } from './log'
 import { Session } from './scan'
 import { interpolate } from './interpolate'
 
@@ -65,8 +65,7 @@ export function rebuildLeadingTrailing(
     source$.pipe(
       map(
         (content) =>
-          `${
-            leading ? `${leading}\n__START__\n\n` : ''
+          `${leading ? `${leading}\n__START__\n\n` : ''
           }${content}${trailing ? `\n__END__\n\n${trailing}` : ''}`
       )
     )
@@ -96,11 +95,33 @@ export function parseSession(): OperatorFunction<string, Session> {
 }
 
 export function recombineWithOriginal(
-  original: string,
-  outputOnly = false
+  {
+    original,
+    outputOnly = false,
+    includeReasoning = false
+  }:
+    {
+      original: string,
+      outputOnly: boolean,
+      includeReasoning: boolean
+    }
 ): OperatorFunction<Session, string> {
   return map((session) => {
-    const output = `${session.pop()?.content || '×'}`
+    const m = session.pop()
+    if (!m) return ''
+
+    let output = `${m?.content || '×'}`
+    const reasoning = ('reasoning' in m) ?
+      m.reasoning : ('reasoning_content' in m) ? m.reasoning_content : ''
+
+    if (reasoning) {
+      logToFile(`[REASONING: ${reasoning}]`)
+    }
+
+    if (includeReasoning && reasoning) {
+      output = `\n<think>${reasoning}</think>\n\n${output}`
+    }
+
     if (outputOnly) return output
     return `${original}\nA>>\n\n${output}\n\nQ>>\n\n`
   })
