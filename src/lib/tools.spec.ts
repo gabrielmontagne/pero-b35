@@ -1,4 +1,5 @@
 import { formatCommand, parseToolsConfig } from './tools'
+import { describe, expect, it } from 'vitest'
 
 describe('tools config', () => {
   const config = `
