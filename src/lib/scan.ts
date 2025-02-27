@@ -24,13 +24,12 @@ export function scanSession({
   tools: ToolsConfig | null
   model: string
   depth?: number
-  gatewayConfig: { baseURL: string; apiKey: string }
+  gatewayConfig: { baseURL?: string; apiKey?: string }
   includeReasoning?: boolean
 }): MonoTypeOperatorFunction<Session> {
   return (source$) =>
     source$.pipe(
       switchMap((session) => {
-        console.log('Session', session)
         const openai = new OpenAI(gatewayConfig)
         return from(
           openai.chat.completions.create({
@@ -53,7 +52,6 @@ export function scanSession({
               throw new Error('Too many tool calls')
             }
 
-            // TODO: why is instanceof not working?
             if (e.toolsMessages) {
               const toolMessages = e.toolsMessages
               const sessionWithTools = [...session, ...toolMessages]

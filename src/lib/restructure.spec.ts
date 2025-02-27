@@ -9,7 +9,7 @@ const testScheduler = new TestScheduler((actual, expected) => {
 describe('parse', () => {
   it('should parse a string', () => {
     const result = parse('foo')
-    expect(result).toEqual([
+    expect(result).resolves.toEqual([
       {
         role: 'user' as const,
         content: [{ type: 'text', text: 'foo' }],
@@ -22,7 +22,7 @@ describe('parse', () => {
       parse(
         'replies are always in absurdly obscure language.\n\nQ>> \n\nwho was Patas Verdes? \n'
       )
-    ).toEqual([
+    ).resolves.toEqual([
       {
         role: 'system' as const,
         content: 'replies are always in absurdly obscure language.',

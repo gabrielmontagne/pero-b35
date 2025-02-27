@@ -18,6 +18,7 @@ export async function interpolate(text: string) {
 
   let match: RegExpExecArray | null
   let lastIndex = 0
+
   while ((match = tag.exec(text)) !== null) {
     const { groups, index } = match
     const fullTag = match[0]

@@ -26,6 +26,11 @@ const gateways = {
     baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/',
     apiKey: process.env.GEMINI_API_KEY as string,
   },
+  openai: {},
+  deepseek: {
+    baseURL: 'https://api.deepseek.com/beta',
+    apiKey: process.env.DEEPSEEK_API_KEY as string,
+  },
 }
 
 interface ChatOptions extends Options {
@@ -137,6 +142,7 @@ class ChatCommand<U extends ChatOptions> implements CommandModule<{}, U> {
                 of(content).pipe(
                   includePreamble(preamble),
                   parseSession(),
+                  flog('Session'),
                   scanSession({
                     tools,
                     model,

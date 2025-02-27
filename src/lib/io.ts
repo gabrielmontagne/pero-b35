@@ -5,7 +5,6 @@ import {
   Observable,
   of,
   reduce,
-  scan,
   tap,
 } from 'rxjs'
 import { flog } from './log'

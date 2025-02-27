@@ -41,7 +41,6 @@ export async function parse(text: string) {
       session.push({ role: 'assistant' as const, content: next.content })
     }
   }
-
   return session
 }
 
