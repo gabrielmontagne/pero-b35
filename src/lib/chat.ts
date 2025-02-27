@@ -106,7 +106,7 @@ class ChatCommand<U extends ChatOptions> implements CommandModule<{}, U> {
       boolean: true,
       default: false,
       alias: 'r',
-      describe: 'include reasoning in the output',
+      describe: 'include reasoning <think> tags in the output, if present',
     })
 
     return args as Argv<U>

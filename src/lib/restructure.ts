@@ -119,7 +119,7 @@ export function recombineWithOriginal(
     }
 
     if (includeReasoning && reasoning) {
-      output = `\n<think>${reasoning}</think>\n\n${output}`
+      output = `\n<think>\n${reasoning}</think>\n\n${output}`
     }
 
     if (outputOnly) return output
