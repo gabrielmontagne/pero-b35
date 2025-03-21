@@ -15,7 +15,7 @@ import { readToolsConfig$ } from './tools'
 
 const gateways = {
   ollama: {
-    baseURL: 'http://localhost:11434/v1',
+    baseURL: 'http://127.0.0.1:11434/v1', // localhost didn't work on CCXLVIII
     apiKey: 'ollama',
   },
   openrouter: {
