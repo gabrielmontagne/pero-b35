@@ -26,6 +26,10 @@ const gateways = {
     baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/',
     apiKey: process.env.GEMINI_API_KEY as string,
   },
+  anthropic: {
+    apiKey: process.env.ANTHROPIC_API_KEY as string,  // Your Anthropic API key
+    baseURL: "https://api.anthropic.com/v1/",  // Anthropic API endpoint
+  },
   openai: {},
   deepseek: {
     baseURL: 'https://api.deepseek.com/beta',
