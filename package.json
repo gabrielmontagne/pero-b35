@@ -7,8 +7,7 @@
     "build": "tsc",
     "dev": "nodemon -e ts --watch src --exec \"npm run build\"",
     "test": "vitest",
-    "prettier-format": "prettier --config .prettierrc 'src/**/*.ts' --write",
-    "start-gateway": "npx @portkey-ai/gateway"
+    "prettier-format": "prettier --config .prettierrc 'src/**/*.ts' --write"
   },
   "bin": {
     "pero": "dist/index.js"
