@@ -1,8 +1,9 @@
-*egg-info
 *.pyc
-__pycache__
-node_modules
-dist/
+*egg-info
 .env
-pero-chat.log
+.vscode
 CLAUDE.md
+__pycache__
+dist/
+node_modules
+pero-chat.log

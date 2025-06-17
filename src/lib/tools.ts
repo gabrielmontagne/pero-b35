@@ -25,13 +25,14 @@ type RawTool = {
   description: string
   parameters?: Record<string, string>
   command: string
+  stdin_param?: string
 }
 
 type RawTools = Record<string, RawTool>
 
 export type ToolsConfig = {
   api: ApiTools
-  commandByName: Record<string, string>
+  commandByName: Record<string, { command: string; stdin_param?: string }>
 }
 
 type ToolResult = ChatCompletionToolMessageParam
@@ -64,7 +65,7 @@ export function parseToolsConfig(config: string) {
 }
 
 function toConfig(acc: ToolsConfig, [name, tool]: [string, RawTool]) {
-  const { description, parameters = {}, command } = tool
+  const { description, parameters = {}, command, stdin_param } = tool
 
   const properties = Object.entries(parameters).reduce(
     (acc, [key, value]) => ({
@@ -91,13 +92,13 @@ function toConfig(acc: ToolsConfig, [name, tool]: [string, RawTool]) {
     api: [...acc.api, apiTool],
     commandByName: {
       ...acc.commandByName,
-      [name]: command,
+      [name]: { command, stdin_param: stdin_param },
     },
   }
 }
 
 export function runToolsIfNeeded(
-  commandByName?: Record<string, string>
+  commandByName?: Record<string, { command: string; stdin_param?: string }>
 ): MonoTypeOperatorFunction<ChatCompletion> {
   if (!commandByName) return (source$) => source$
   return (source$) =>
@@ -114,11 +115,18 @@ export function runToolsIfNeeded(
           const toolCalls = firstChoice.message.tool_calls
 
           if (!toolCalls) return of(response)
+          
+         toolCalls.forEach((call) => {
+            if (!call.id) {
+              call.id = `pero-gen-${Math.random().toString(36).substring(2, 9)}`
+            }
+          })
+
           const runCommands = toolCalls.map((toolCall) => {
             const { id, function: fn } = toolCall
             const { name, arguments: args } = fn
-            const command = commandByName[name]
-            return runCommand$(command, JSON.parse(args), id)
+            const toolConfig = commandByName[name]
+            return runCommand$(toolConfig, JSON.parse(args), id)
           })
 
           return forkJoin(runCommands).pipe(
@@ -135,16 +143,37 @@ export function runToolsIfNeeded(
 }
 
 function runCommand$(
-  commandTemplate: string,
+  // commandTemplate: string,
+  toolConfig: { command: string; stdin_param?: string },
   args: Record<string, string>,
   id: string
 ): Observable<ToolResult> {
-  const command = formatCommand(commandTemplate, args)
+  // const command = formatCommand(commandTemplate, args)
+
+  const { command: commandTemplate, stdin_param } = toolConfig
+
+  let stdinContent: string | undefined
+  const commandArgs = { ...args }
+
+  if (stdin_param && commandArgs[stdin_param] !== undefined) {
+    stdinContent = String(commandArgs[stdin_param])
+    delete commandArgs[stdin_param]
+  }
+
+  const command = formatCommand(commandTemplate, commandArgs)
+
   return new Observable<ToolResult>((o) => {
-    exec(command, (error, stdout, stderr) => {
+    const child = exec(command, (error, stdout, stderr) => {
       if (error) {
-        console.error(`exec error: ${error}`)
-        o.error(stderr)
+        const content = `Tool execution failed with exit code ${error.code}.\nSTDERR:\n${stderr}\nSTDOUT:\n${stdout}`
+        console.error(`exec error for command "${command}":\n${content}`)
+        o.next({
+          tool_call_id: id,
+          content: content,
+          role: 'tool',
+        })
+        o.complete()
+        return
       }
 
       const result: ToolResult = {
@@ -152,9 +181,16 @@ function runCommand$(
         content: stdout,
         role: 'tool',
       }
+
       o.next(result)
       o.complete()
     })
+
+    if (stdinContent && child.stdin) {
+      child.stdin.write(stdinContent)
+      child.stdin.end()
+    }
+
   }).pipe(flog(`Run commnd »${command}«`))
 }
 

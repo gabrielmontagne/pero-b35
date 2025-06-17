@@ -4,36 +4,20 @@ read_text_file:
     file_path: The path to the file to read
   command: cat "{{file_path}}"
 
+# write_to_text_file:
+#   description: Write to a text file, overwriting its contents
+#   parameters:
+#     file_path: The path to the file to write to
+#     text: The text to write to the file
+#   command: |
+#     cat <<'EOF' > "{{file_path}}"
+#     {{text}}
+#     EOF
+
 write_to_text_file:
   description: Write to a text file, overwriting its contents
   parameters:
     file_path: The path to the file to write to
     text: The text to write to the file
-  command: |
-    cat <<'EOF' > "{{file_path}}"
-    {{text}}
-    EOF
-
-read_web_page:
-  description: Read the contents of a web page
-  parameters:
-    url: The URL of the web page to read
-  command: elinks "{{url}}"
-
-search_web:
-  description: Search the web for a given query
-  parameters:
-    query: The search query
-  command: googler --np "{{query}}"
-
-read_pdf_file:
-  description: Read the contents of a pdf file
-  parameters:
-    file_path: The path to the pdf file to read
-  command: pdftotext -layout -nopgbrk "{{file_path}}" -
-
-ask_for_supervisor_feedback:
-  description: Ask for expert human feedback
-  parameters:
-    query: The question (with context) you'd like feedback on.
-  command: echo "{{query}}" | vipe
+  command: 'cat > "{{file_path}}"'
+  stdin_param: text
