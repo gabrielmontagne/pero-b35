@@ -165,8 +165,14 @@ function runCommand$(
   return new Observable<ToolResult>((o) => {
     const child = exec(command, (error, stdout, stderr) => {
       if (error) {
-        console.error(`exec error: ${error}`)
-        o.error(new Error(stderr || error.message))
+        const content = `Tool execution failed with exit code ${error.code}.\nSTDERR:\n${stderr}\nSTDOUT:\n${stdout}`
+        console.error(`exec error for command "${command}":\n${content}`)
+        o.next({
+          tool_call_id: id,
+          content: content,
+          role: 'tool',
+        })
+        o.complete()
         return
       }
 
