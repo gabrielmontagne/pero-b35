@@ -187,8 +187,27 @@ function runCommand$(
     })
 
     if (stdinContent && child.stdin) {
-      child.stdin.write(stdinContent)
-      child.stdin.end()
+      // Handle stdin errors
+      child.stdin.on('error', (err) => {
+        console.error(`stdin error for command "${command}": ${err.message}`)
+        // Don't emit an error to the observable, just log it
+        // The exec callback will handle the overall result
+      })
+
+      // Write with a callback to ensure proper error handling
+      child.stdin.write(stdinContent, (err) => {
+        if (err) {
+          console.error(`Error writing to stdin for command "${command}": ${err.message}`)
+        }
+        // Always try to end the stream, even if write failed
+        try {
+          if (child.stdin) {
+            child.stdin.end()
+          }
+        } catch (endErr) {
+          console.error(`Error ending stdin for command "${command}": ${endErr}`)
+        }
+      })
     }
 
   }).pipe(flog(`Run commnd »${command}«`))
