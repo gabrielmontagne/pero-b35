@@ -23,7 +23,7 @@ const visibleRoles = new Set<ChatCompletionRole>([
 ])
 const impliedInitialRole = new Set<ChatCompletionRole>(['system', 'user'])
 
-export async function parse(text: string) {
+export async function parse(text: string, gatewayConfig?: { audioFormat?: string }) {
   const { result, firstKey } = pair(text)
   result[0].key = firstKey == 'Q' ? 'S' : 'Q'
   const session: Session = []
@@ -35,7 +35,7 @@ export async function parse(text: string) {
     } else if (next.key == 'Q') {
       session.push({
         role: 'user' as const,
-        content: await interpolate(next.content),
+        content: await interpolate(next.content, gatewayConfig),
       })
     } else if (next.key == 'A') {
       session.push({ role: 'assistant' as const, content: next.content })
@@ -90,8 +90,8 @@ export function startEndSplit(text: string): {
   }
 }
 
-export function parseSession(): OperatorFunction<string, Session> {
-  return (source$) => source$.pipe(switchMap(parse), flog('Parse'))
+export function parseSession(gatewayConfig?: { audioFormat?: string }): OperatorFunction<string, Session> {
+  return (source$) => source$.pipe(switchMap(text => parse(text, gatewayConfig)), flog('Parse'))
 }
 
 export function recombineWithOriginal(

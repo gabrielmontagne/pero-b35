@@ -82,9 +82,9 @@ search_web:
   it('should index tool commands by name', () => {
     const tools = parseToolsConfig(config)
     expect(tools.commandByName).toEqual({
-      read_file: 'cat {file_path}',
-      read_web_page: 'elinks {url}',
-      search_web: 'googler --np {query}',
+      read_file: { command: 'cat {file_path}', stdin_param: undefined },
+      read_web_page: { command: 'elinks {url}', stdin_param: undefined },
+      search_web: { command: 'googler --np {query}', stdin_param: undefined },
     })
   })
 })
