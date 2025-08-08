@@ -2,7 +2,6 @@
 *egg-info
 .env
 .vscode
-CLAUDE.md
 __pycache__
 dist/
 node_modules

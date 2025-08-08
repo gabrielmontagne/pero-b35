@@ -1,6 +1,4 @@
-# CLAUDE.md
-
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+# Pero-B35
 
 ## Project Overview
 
@@ -81,17 +79,3 @@ ANTHROPIC_API_KEY=...
 GEMINI_API_KEY=...
 DEEPSEEK_API_KEY=...
 ```
-
-## Testing
-
-- Uses Vitest framework with global test environment
-- Test files use `.spec.ts` extension
-- RxJS testing utilities for reactive stream testing
-- Run single test: Use Vitest's file filtering (e.g., `npm test tools.spec.ts`)
-
-## Code Style
-
-- Uses Prettier with specific config: no semicolons, single quotes, 80 char width, ES5 trailing commas
-- TypeScript with strict mode enabled
-- Functional programming patterns with RxJS
-- Error handling through RxJS catchError operators
