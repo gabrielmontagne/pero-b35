@@ -1,9 +1,10 @@
 import * as fs from 'fs'
+import * as os from 'os'
 import * as path from 'path'
 import { MonoTypeOperatorFunction, tap } from 'rxjs'
 import { forceString } from './io'
 
-const logFilePath = path.join(__dirname, '..', '..', 'pero-chat.log')
+const logFilePath = path.join(os.tmpdir(), 'pero-chat.log')
 
 export function log<T>(context: string) {
   return {

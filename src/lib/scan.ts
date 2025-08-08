@@ -23,7 +23,7 @@ export function scanSession({
   tools: ToolsConfig | null
   model: string
   depth?: number
-  gatewayConfig: { baseURL?: string; apiKey?: string }
+  gatewayConfig: { baseURL?: string; apiKey?: string; audioFormat?: 'openai' | 'gemini' }
   includeReasoning?: boolean
 }): MonoTypeOperatorFunction<Session> {
   return (source$) =>

@@ -17,23 +17,30 @@ const gateways = {
   ollama: {
     baseURL: 'http://127.0.0.1:11434/v1', // localhost didn't work on CCXLVIII
     apiKey: 'ollama',
+    audioFormat: 'openai' as const,
   },
   openrouter: {
     baseURL: 'https://openrouter.ai/api/v1',
     apiKey: process.env.OPENROUTER_API_KEY as string,
+    audioFormat: 'openai' as const,
   },
   gemini: {
     baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/',
     apiKey: process.env.GEMINI_API_KEY as string,
+    audioFormat: 'gemini' as const,
   },
   anthropic: {
     apiKey: process.env.ANTHROPIC_API_KEY as string,  // Your Anthropic API key
     baseURL: "https://api.anthropic.com/v1/",  // Anthropic API endpoint
+    audioFormat: 'openai' as const, // Fallback, Claude doesn't support audio files yet
   },
-  openai: {},
+  openai: {
+    audioFormat: 'openai' as const,
+  },
   deepseek: {
     baseURL: 'https://api.deepseek.com/beta',
     apiKey: process.env.DEEPSEEK_API_KEY as string,
+    audioFormat: 'openai' as const,
   },
 }
 
@@ -146,7 +153,7 @@ class ChatCommand<U extends ChatOptions> implements CommandModule<{}, U> {
               switchMap((original) =>
                 of(original).pipe(
                   includePreamble(preamble),
-                  parseSession(),
+                  parseSession(gatewayConfig),
                   flog('Session'),
                   scanSession({
                     tools,
