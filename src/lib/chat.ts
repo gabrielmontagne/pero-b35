@@ -30,8 +30,8 @@ const gateways = {
     audioFormat: 'gemini' as const,
   },
   anthropic: {
-    apiKey: process.env.ANTHROPIC_API_KEY as string,  // Your Anthropic API key
-    baseURL: "https://api.anthropic.com/v1/",  // Anthropic API endpoint
+    apiKey: process.env.ANTHROPIC_API_KEY as string, // Your Anthropic API key
+    baseURL: 'https://api.anthropic.com/v1/', // Anthropic API endpoint
     audioFormat: 'openai' as const, // Fallback, Claude doesn't support audio files yet
   },
   openai: {
@@ -54,8 +54,9 @@ interface ChatOptions extends Options {
   gateway: keyof typeof gateways
   includeReasoning: boolean
   inlineThink: boolean
+  includeTool: string
+  toolsPlacement: string
 }
-
 const defaultToolsPath = path.join(__dirname, '..', '..', 'tools.yaml')
 
 class ChatCommand<U extends ChatOptions> implements CommandModule<{}, U> {
@@ -117,7 +118,22 @@ class ChatCommand<U extends ChatOptions> implements CommandModule<{}, U> {
       boolean: true,
       default: false,
       alias: 'r',
-      describe: 'include reasoning @@.think / @@ tags in the output, if present',
+      describe:
+        'include reasoning @@.think / @@ tags in the output, if present',
+    })
+
+    args.option('include-tool', {
+      string: true,
+      default: 'none',
+      choices: ['none', 'call', 'result'],
+      describe: 'include @@.tools block with tool calls/results',
+    })
+
+    args.option('tools-placement', {
+      string: true,
+      default: 'top',
+      choices: ['top', 'bottom'],
+      describe: 'where to place the @@.tools block within the assistant output',
     })
 
     return args as Argv<U>
@@ -133,6 +149,8 @@ class ChatCommand<U extends ChatOptions> implements CommandModule<{}, U> {
       preamble,
       outputOnly,
       includeReasoning,
+      includeTool,
+      toolsPlacement,
     } = args
 
     const input$ = createInputText$(file)
@@ -161,7 +179,13 @@ class ChatCommand<U extends ChatOptions> implements CommandModule<{}, U> {
                     gatewayConfig,
                     includeReasoning,
                   }),
-                  recombineWithOriginal({ original, outputOnly, includeReasoning }),
+                  recombineWithOriginal({
+                    original,
+                    outputOnly,
+                    includeReasoning,
+                    includeTool: includeTool as any,
+                    toolsPlacement: toolsPlacement as any,
+                  }),
                   rebuildLeadingTrailing(leading, trailing),
                   flog('Chat')
                 )

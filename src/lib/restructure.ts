@@ -4,6 +4,13 @@ import { createInputTextFiles$ } from './io'
 import { flog, logToFile } from './log'
 import { Session } from './scan'
 import { interpolate } from './interpolate'
+import {
+  extractLastToolPhase,
+  makeToolsBlock,
+  insertToolsBlock,
+  IncludeToolMode,
+  ToolsPlacement,
+} from './toolblock'
 
 const startMarker = /^__START__\s*\n/m
 const endMarker = /^__END__\s*\n/m
@@ -23,7 +30,10 @@ const visibleRoles = new Set<ChatCompletionRole>([
 ])
 const impliedInitialRole = new Set<ChatCompletionRole>(['system', 'user'])
 
-export async function parse(text: string, gatewayConfig?: { audioFormat?: string }) {
+export async function parse(
+  text: string,
+  gatewayConfig?: { audioFormat?: string }
+) {
   const { result, firstKey } = pair(text)
   result[0].key = firstKey == 'Q' ? 'S' : 'Q'
   const session: Session = []
@@ -65,7 +75,8 @@ export function rebuildLeadingTrailing(
     source$.pipe(
       map(
         (content) =>
-          `${leading ? `${leading}\n__START__\n\n` : ''
+          `${
+            leading ? `${leading}\n__START__\n\n` : ''
           }${content}${trailing ? `\n__END__\n\n${trailing}` : ''}`
       )
     )
@@ -90,40 +101,57 @@ export function startEndSplit(text: string): {
   }
 }
 
-export function parseSession(gatewayConfig?: { audioFormat?: string }): OperatorFunction<string, Session> {
-  return (source$) => source$.pipe(switchMap(text => parse(text, gatewayConfig)), flog('Parse'))
+export function parseSession(gatewayConfig?: {
+  audioFormat?: string
+}): OperatorFunction<string, Session> {
+  return (source$) =>
+    source$.pipe(
+      switchMap((text) => parse(text, gatewayConfig)),
+      flog('Parse')
+    )
 }
 
-export function recombineWithOriginal(
-  {
-    original,
-    outputOnly = false,
-    includeReasoning = false
-  }:
-    {
-      original: string,
-      outputOnly: boolean,
-      includeReasoning: boolean
-    }
-): OperatorFunction<Session, string> {
+export function recombineWithOriginal({
+  original,
+  outputOnly = false,
+  includeReasoning = false,
+  includeTool = 'none',
+  toolsPlacement = 'top',
+}: {
+  original: string
+  outputOnly: boolean
+  includeReasoning: boolean
+  includeTool?: IncludeToolMode
+  toolsPlacement?: ToolsPlacement
+}): OperatorFunction<Session, string> {
   return map((session) => {
-    const m = session.pop()
+    const m: any = session[session.length - 1]
     if (!m) return ''
 
-    let output = `${m?.content || '×'}`
-    const reasoning = ('reasoning' in m) ?
-      m.reasoning : ('reasoning_content' in m) ? m.reasoning_content : ''
+    const assistantText = `${m?.content || '×'}`
+    const reasoning =
+      'reasoning' in m
+        ? m.reasoning
+        : 'reasoning_content' in m
+          ? m.reasoning_content
+          : ''
 
     if (reasoning) {
       logToFile(`[REASONING: ${reasoning}]`)
     }
 
-    if (includeReasoning && reasoning) {
-      output = `\n@@.think\n${reasoning}\n@@\n\n${output}`
-    }
+    const entries = extractLastToolPhase(session)
+    const toolsBlock = makeToolsBlock(entries, { mode: includeTool })
+    const combined = insertToolsBlock(
+      assistantText,
+      toolsBlock,
+      reasoning,
+      includeReasoning,
+      toolsPlacement
+    )
 
-    if (outputOnly) return output
-    return `${original}\nA>>\n\n${output}\n\nQ>>\n\n`
+    if (outputOnly) return combined
+    return `${original}\nA>>\n\n${combined}\n\nQ>>\n\n`
   })
 }
 
