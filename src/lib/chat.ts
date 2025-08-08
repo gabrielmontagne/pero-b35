@@ -34,7 +34,7 @@ class ChatCommand<U extends ChatOptions> implements CommandModule<{}, U> {
       alias: 'm',
       describe: 'model to use',
       type: 'string',
-      default: 'openai/gpt-4o',
+      default: 'anthropic/claude-sonnet-4',
     })
 
     args.option('tools', {
