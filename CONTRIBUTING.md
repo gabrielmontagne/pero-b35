@@ -7,12 +7,14 @@ Pero-B35 is a TypeScript CLI tool that provides a thin wrapper around OpenAI-com
 ## Key Commands
 
 ### Build and Development
+
 - `npm run build` - Compile TypeScript to JavaScript in dist/
 - `npm run dev` - Watch mode development with automatic rebuilds
 - `npm run test` - Run tests using Vitest
 - `npm run prettier-format` - Format code according to project style
 
 ### Running the CLI
+
 - `npx pero chat` - Start chat interface
 - `npx pero chat -f <file>` - Read from file instead of stdin
 - `npx pero chat -m <model>` - Specify model (default: openai/gpt-4o)
@@ -31,7 +33,7 @@ Pero-B35 is a TypeScript CLI tool that provides a thin wrapper around OpenAI-com
 
 **Session Management** (`src/lib/scan.ts`): Manages chat completions with recursive tool calling support. Handles the interaction with OpenAI-compatible APIs and tool execution loops.
 
-**Text Processing** (`src/lib/restructure.ts`): Handles parsing and formatting of chat sessions. Supports special syntax for role headers (S>>, Q>>, A>>) and __START__/__END__ markers for content boundaries.
+**Text Processing** (`src/lib/restructure.ts`): Handles parsing and formatting of chat sessions. Supports special syntax for role headers (S>>, Q>>, A>>) and **START**/**END** markers for content boundaries.
 
 **Tools System** (`src/lib/tools.ts`): Dynamic tool system that converts YAML tool definitions into OpenAI function calling format. Executes shell commands with parameter interpolation using {{parameter}} syntax.
 
@@ -47,12 +49,14 @@ Pero-B35 is a TypeScript CLI tool that provides a thin wrapper around OpenAI-com
 ### Content Interpolation
 
 User messages support special tags for including files, images, and audio:
+
 - `[txt[path/to/file.txt]]` - Includes text file content wrapped in `<FILE>` tags
 - `[img[path/to/image.jpg]]` - Includes local image as base64 data URI
 - `[img[https://example.com/image.jpg]]` - Includes remote image by URL
 - `[audio[path/to/audio.wav]]` - Includes audio file for supported gateways
 
 Audio files are processed according to gateway-specific formats:
+
 - **OpenAI**: Uses `input_audio` format with base64 data
 - **Gemini**: Uses `inline_data` format with MIME type
 - **Other gateways**: Default to OpenAI format
@@ -64,6 +68,7 @@ These tags are processed by `src/lib/interpolate.ts` and converted to appropriat
 ### Tool Configuration
 
 Tools are defined in YAML format (`tools.yaml`) with:
+
 - `description`: Tool description for the AI
 - `parameters`: Parameter definitions with descriptions
 - `command`: Shell command template with {{parameter}} placeholders
@@ -72,10 +77,28 @@ Tools are defined in YAML format (`tools.yaml`) with:
 ## Environment Setup
 
 Create `.env` file in project root with required API keys:
+
 ```
 OPENAI_API_KEY=sk-...
 OPENROUTER_API_KEY=...
 ANTHROPIC_API_KEY=...
 GEMINI_API_KEY=...
 DEEPSEEK_API_KEY=...
+```
+
+## Implementation preferences
+
+- Observables-first: treat RxJS Observables as a project “primitive”.
+- Do not mix Promises and Observables in production paths; keep flows Observable end-to-end. Only bridge at boundaries if absolutely necessary.
+- Compose with small, pure Rx operators; push side effects to sinks/subscribers.
+- One options shape (ChatRunOptions) consumed by all journeys (CLI, server). Parse CLI flags and HTTP query params into this shape.
+- Prefer kebab-case for CLI flags and HTTP query params; keep internal API camelCase if needed, but adapt once at the boundary.
+- Reuse helpers for tool configuration:
+  - resolveAutoToolsPath(cwd, defaultPath)
+  - compute final tool paths consistently for chat and serve
+- Prefer SSS (Simplest Solution Soonest): avoid adding new dependencies or abstractions unless required.
+- Tests: you may use firstValueFrom in tests for convenience, but keep production code Observables-only.
+
+```
+
 ```

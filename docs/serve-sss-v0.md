@@ -72,9 +72,10 @@ Scope: Add a minimal HTTP server command that mirrors `pero chat` behavior with 
 
 ## Architecture: one pipeline, different sources/sinks
 
-- Introduce a reusable wrapper:
-  - `runChatOnce(text: string, opts: ChatRunOptions): Promise<string>`
+- Introduce a reusable wrapper (Observables-first):
+  - `runChat$(text: string, opts: ChatRunOptions): Observable<string>`
     - Internally: build the same Rx chain used by `chat.ts` (includePreamble → parseSession → scanSession → recombineWithOriginal → rebuildLeadingTrailing).
+    - Semantics: emits a single string value; both CLI and server subscribe and write to their sinks.
 - CLI `chat` and server `serve` both call this; only the input source (stdin vs HTTP body) and sink (stdout vs HTTP response) differ.
 - Options alignment:
   - Input adapters (yargs for CLI, query parser for server) both map into the same `ChatRunOptions` shape.
@@ -114,12 +115,12 @@ Scope: Add a minimal HTTP server command that mirrors `pero chat` behavior with 
 
 ## Implementation plan (checklist)
 
-- [ ] Factor a `runChatOnce(text, opts)` that wraps current Rx pipeline
+- [ ] Factor a `runChat$(text, opts): Observable<string>` that wraps current Rx pipeline
 - [ ] Share: auto tools path resolution + final tool paths computation
 - [ ] Add `serve` command with flags mirroring `chat` defaults (host/port added)
-- [ ] Implement node:http server - [ ] Hard-code CORS `*` and handle OPTIONS - [ ] Parse query params (kebab-case), coerce booleans, collect repeatable arrays - [ ] Read text/plain body (UTF-8) - [ ] Merge query overrides onto startup defaults - [ ] Call `runChatOnce`, respond text/plain
+- [ ] Implement node:http server - [ ] Hard-code CORS `*` and handle OPTIONS - [ ] Parse query params (kebab-case), coerce booleans, collect repeatable arrays - [ ] Read text/plain body (UTF-8) - [ ] Merge query overrides onto startup defaults - [ ] Subscribe to `runChat$` and respond with the single emitted text/plain value
 - [ ] README/docs: minimal usage + TW snippet
-- [ ] Vitest minimal integration - [ ] `runChatOnce` parity with `chat` for a fixture - [ ] POST / returns non-empty text/plain - [ ] Query overrides honored - [ ] omit-tools parity with CLI - [ ] OPTIONS responds with CORS headers
+- [ ] Vitest minimal integration - [ ] `runChat$` parity with `chat` for a fixture - [ ] POST / returns non-empty text/plain - [ ] Query overrides honored - [ ] omit-tools parity with CLI - [ ] OPTIONS responds with CORS headers
 
 ## Quick usage (target)
 
