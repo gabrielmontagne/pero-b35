@@ -18,3 +18,14 @@ Options:
       --version  Show version number                                   [boolean]
   -f, --file     file to read from                                      [string]
 ```
+
+=== Tools configuration lookup
+
+- If -t/--tools is provided, those files are loaded (in order).
+- Otherwise, an automatic tools file is selected in this order:
+  1) ./tools.yaml in current working directory
+  2) ./tools.yml in current working directory
+  3) bundled default tools.yaml
+- Explicit -t files are merged after the automatic file and override on name conflicts.
+- Use --omit-tools to disable the automatic tools file (only explicit -t files will be used).
+- --omit-default-tools is deprecated; use --omit-tools instead.

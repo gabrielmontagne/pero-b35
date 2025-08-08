@@ -50,6 +50,7 @@ interface ChatOptions extends Options {
   tools: string[]
   preamble: string[]
   omitDefaultTools: boolean
+  omitTools: boolean
   outputOnly: boolean
   gateway: keyof typeof gateways
   includeReasoning: boolean
@@ -84,10 +85,17 @@ class ChatCommand<U extends ChatOptions> implements CommandModule<{}, U> {
       default: [],
     })
 
+    args.option('omit-tools', {
+      boolean: true,
+      default: false,
+      describe: 'do not include automatic tools (local or default)',
+    })
+
     args.option('omit-default-tools', {
       boolean: true,
       default: false,
       describe: 'do not include the default tools',
+      deprecated: 'use --omit-tools',
     })
 
     args.option('gateway', {
@@ -144,6 +152,7 @@ class ChatCommand<U extends ChatOptions> implements CommandModule<{}, U> {
       file,
       model,
       gateway,
+      // keep receiving omitDefaultTools for backwards-compat
       omitDefaultTools,
       tools,
       preamble,
@@ -153,15 +162,33 @@ class ChatCommand<U extends ChatOptions> implements CommandModule<{}, U> {
       toolsPlacement,
     } = args
 
+    const omitTools = (args as any).omitTools ?? omitDefaultTools ?? false
+
+    const cwdYaml = path.resolve(process.cwd(), 'tools.yaml')
+    const cwdYml = path.resolve(process.cwd(), 'tools.yml')
+
+    let autoToolsPath: string | null = null
+    try {
+      const { existsSync } = require('fs') as typeof import('fs')
+      if (existsSync(cwdYaml)) autoToolsPath = cwdYaml
+      else if (existsSync(cwdYml)) autoToolsPath = cwdYml
+      else if (existsSync(defaultToolsPath)) autoToolsPath = defaultToolsPath
+    } catch (e) {
+      // if fs is unavailable for some reason, fall back to default
+      autoToolsPath = defaultToolsPath
+    }
+
+    const finalToolPaths = [
+      ...(omitTools || !autoToolsPath ? [] : [autoToolsPath]),
+      ...tools,
+    ]
+
     const input$ = createInputText$(file)
 
     combineLatest({
       gatewayConfig: of(gateways[gateway]),
       input: input$.pipe(map(startEndSplit)),
-      tools: readToolsConfig$([
-        ...(omitDefaultTools ? [] : [defaultToolsPath]),
-        ...tools,
-      ]),
+      tools: readToolsConfig$(finalToolPaths),
     })
       .pipe(
         flog('Chat'),
