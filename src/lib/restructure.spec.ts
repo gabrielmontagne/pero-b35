@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { TestScheduler } from 'rxjs/testing'
-import { parse, recombineSession, startEndSplit } from './restructure'
+import { parse, startEndSplit } from './restructure'
 
 const testScheduler = new TestScheduler((actual, expected) => {
   expect(actual).toEqual(expected)
@@ -91,27 +91,3 @@ DDDD`
   })
 })
 
-describe('recombineSession', () => {
-  it('should recombine a session', () => {
-    testScheduler.run((helpers) => {
-      const { cold, expectObservable } = helpers
-      const inputs = {
-        a: [
-          { role: 'user' as const, content: 'foo' },
-          { role: 'assistant' as const, content: 'bar' },
-          { role: 'user' as const, content: 'baz' },
-        ],
-        b: [
-          { role: 'system' as const, content: 'soo' },
-          { role: 'user' as const, content: 'too' },
-          { role: 'assistant' as const, content: 'aoo' },
-        ],
-      }
-      const source = cold('a-b-|', inputs).pipe(recombineSession())
-      expectObservable(source).toBe('a-b-|', {
-        a: `foo\n\nA>>\n\nbar\n\nQ>>\n\nbaz\n\n`,
-        b: `soo\n\nQ>>\n\ntoo\n\nA>>\n\naoo\n\n`,
-      })
-    })
-  })
-})

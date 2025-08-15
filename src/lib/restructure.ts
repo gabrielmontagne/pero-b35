@@ -155,27 +155,13 @@ export function recombineWithOriginal({
   })
 }
 
-export function recombineSession(): OperatorFunction<Session, string> {
-  return map((session) => {
-    const result = session.reduceRight((acc, message, i) => {
-      const { role, content } = message
-      if (!visibleRoles.has(role)) {
-        return acc
-      }
-      if (role === 'assistant' && message.tool_calls) {
-        return acc
-      }
-      const shouldShowHeader = i != 0 || !impliedInitialRole.has(role)
-      return `${shouldShowHeader ? roleToHeader[role] + '>>\n\n' : ''}${content}\n\n${acc}`
-    }, '')
-    return result
-  })
-}
 
 function pair(t: string) {
   const result: Partial<{ key: string; content: string }>[] = []
+  
+  const filteredText = t.replace(/^%%%.*$/gm, '')
 
-  return t.split(/^(\w)>>/m).reduceRight(
+  return filteredText.split(/^(\w)>>/m).reduceRight(
     (acc, next, i) => {
       const { result, firstKey: lastFirstKey } = acc
       const isKey = i % 2 == 1
