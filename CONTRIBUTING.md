@@ -33,7 +33,7 @@ Pero-B35 is a TypeScript CLI tool that provides a thin wrapper around OpenAI-com
 
 **Session Management** (`src/lib/scan.ts`): Manages chat completions with recursive tool calling support. Handles the interaction with OpenAI-compatible APIs and tool execution loops.
 
-**Text Processing** (`src/lib/restructure.ts`): Handles parsing and formatting of chat sessions. Supports special syntax for role headers (S>>, Q>>, A>>) and **START**/**END** markers for content boundaries.
+**Text Processing** (`src/lib/restructure.ts`): Handles parsing and formatting of chat sessions. Supports special syntax for role headers (S>>, Q>>, A>>) and __START__/__END__ markers for content boundaries. Lines starting with `%%%` are treated as comments and filtered out during processing.
 
 **Tools System** (`src/lib/tools.ts`): Dynamic tool system that converts YAML tool definitions into OpenAI function calling format. Executes shell commands with parameter interpolation using {{parameter}} syntax.
 
