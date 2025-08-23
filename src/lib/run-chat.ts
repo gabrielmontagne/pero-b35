@@ -51,9 +51,13 @@ export interface ChatRunOptions {
   includeReasoning: boolean
   includeTool: 'none' | 'call' | 'result'
   toolsPlacement: 'top' | 'bottom'
+  maxTokens?: number
 }
 
-export function resolveAutoToolsPath(cwd: string, defaultPath: string): string | null {
+export function resolveAutoToolsPath(
+  cwd: string,
+  defaultPath: string
+): string | null {
   const cwdYaml = path.resolve(cwd, 'tools.yaml')
   const cwdYml = path.resolve(cwd, 'tools.yml')
 
@@ -68,7 +72,10 @@ export function resolveAutoToolsPath(cwd: string, defaultPath: string): string |
   return null
 }
 
-export function runChat$(text: string, options: ChatRunOptions): Observable<string> {
+export function runChat$(
+  text: string,
+  options: ChatRunOptions
+): Observable<string> {
   const {
     model,
     gateway,
@@ -79,11 +86,12 @@ export function runChat$(text: string, options: ChatRunOptions): Observable<stri
     includeReasoning,
     includeTool,
     toolsPlacement,
+    maxTokens,
   } = options
 
   const defaultToolsPath = path.join(__dirname, '..', '..', 'tools.yaml')
   const autoToolsPath = resolveAutoToolsPath(process.cwd(), defaultToolsPath)
-  
+
   const finalToolPaths = [
     ...(omitTools || !autoToolsPath ? [] : [autoToolsPath]),
     ...tools,
@@ -94,29 +102,32 @@ export function runChat$(text: string, options: ChatRunOptions): Observable<stri
     input: of(text).pipe(map(startEndSplit)),
     tools: readToolsConfig$(finalToolPaths),
   }).pipe(
-    switchMap(({ input: { main, leading, trailing }, tools, gatewayConfig }) => {
-      return of(main).pipe(
-        switchMap((original) =>
-          of(original).pipe(
-            includePreamble(preamble),
-            parseSession(gatewayConfig),
-            scanSession({
-              tools,
-              model,
-              gatewayConfig,
-              includeReasoning,
-            }),
-            recombineWithOriginal({
-              original,
-              outputOnly,
-              includeReasoning,
-              includeTool,
-              toolsPlacement,
-            }),
-            rebuildLeadingTrailing(leading, trailing)
+    switchMap(
+      ({ input: { main, leading, trailing }, tools, gatewayConfig }) => {
+        return of(main).pipe(
+          switchMap((original) =>
+            of(original).pipe(
+              includePreamble(preamble),
+              parseSession(gatewayConfig),
+              scanSession({
+                tools,
+                model,
+                gatewayConfig,
+                includeReasoning,
+                maxTokens,
+              }),
+              recombineWithOriginal({
+                original,
+                outputOnly,
+                includeReasoning,
+                includeTool,
+                toolsPlacement,
+              }),
+              rebuildLeadingTrailing(leading, trailing)
+            )
           )
         )
-      )
-    })
+      }
+    )
   )
 }

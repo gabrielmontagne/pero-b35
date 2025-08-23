@@ -6,7 +6,7 @@ import {
   from,
   map,
   of,
-  switchMap
+  switchMap,
 } from 'rxjs'
 import { flog } from './log'
 import { ToolsConfig, runToolsIfNeeded } from './tools'
@@ -18,13 +18,19 @@ export function scanSession({
   model,
   gatewayConfig,
   includeReasoning,
+  maxTokens,
   depth = 0,
 }: {
   tools: ToolsConfig | null
   model: string
   depth?: number
-  gatewayConfig: { baseURL?: string; apiKey?: string; audioFormat?: 'openai' | 'gemini' }
+  gatewayConfig: {
+    baseURL?: string
+    apiKey?: string
+    audioFormat?: 'openai' | 'gemini'
+  }
   includeReasoning?: boolean
+  maxTokens?: number
 }): MonoTypeOperatorFunction<Session> {
   return (source$) =>
     source$.pipe(
@@ -35,6 +41,7 @@ export function scanSession({
             model,
             messages: session,
             ...(includeReasoning && { include_reasoning: true }),
+            ...(maxTokens && { max_tokens: maxTokens }),
             ...(tools && {
               tools: tools.api,
               tool_choice: 'auto',

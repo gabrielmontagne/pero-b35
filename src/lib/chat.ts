@@ -3,7 +3,14 @@ import { ArgumentsCamelCase, Argv, CommandModule, Options } from 'yargs'
 import { createInputText$, out } from './io'
 import { runChat$, ChatRunOptions } from './run-chat'
 
-const gateways = ['ollama', 'openrouter', 'gemini', 'anthropic', 'openai', 'deepseek'] as const
+const gateways = [
+  'ollama',
+  'openrouter',
+  'gemini',
+  'anthropic',
+  'openai',
+  'deepseek',
+] as const
 
 interface ChatOptions extends Options {
   file: string
@@ -13,11 +20,12 @@ interface ChatOptions extends Options {
   omitDefaultTools: boolean
   omitTools: boolean
   outputOnly: boolean
-  gateway: typeof gateways[number]
+  gateway: (typeof gateways)[number]
   includeReasoning: boolean
   inlineThink: boolean
   includeTool: string
   toolsPlacement: string
+  maxTokens: number
 }
 
 class ChatCommand<U extends ChatOptions> implements CommandModule<{}, U> {
@@ -104,6 +112,11 @@ class ChatCommand<U extends ChatOptions> implements CommandModule<{}, U> {
       describe: 'where to place the @@.tools block within the assistant output',
     })
 
+    args.option('max-tokens', {
+      number: true,
+      describe: 'maximum number of tokens to generate',
+    })
+
     return args as Argv<U>
   }
 
@@ -119,6 +132,7 @@ class ChatCommand<U extends ChatOptions> implements CommandModule<{}, U> {
       includeReasoning,
       includeTool,
       toolsPlacement,
+      maxTokens,
     } = args
 
     const omitTools = (args as any).omitTools ?? omitDefaultTools ?? false
@@ -133,13 +147,12 @@ class ChatCommand<U extends ChatOptions> implements CommandModule<{}, U> {
       includeReasoning,
       includeTool: includeTool as any,
       toolsPlacement: toolsPlacement as any,
+      maxTokens,
     }
 
     const input$ = createInputText$(file)
 
-    input$
-      .pipe(switchMap((text) => runChat$(text, options)))
-      .subscribe(out())
+    input$.pipe(switchMap((text) => runChat$(text, options))).subscribe(out())
   }
 }
 
