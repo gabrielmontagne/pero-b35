@@ -10,6 +10,7 @@ const gateways = [
   'anthropic',
   'openai',
   'deepseek',
+  'copilot',
 ] as const
 
 interface ChatOptions extends Options {

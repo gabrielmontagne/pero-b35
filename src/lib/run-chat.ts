@@ -39,6 +39,19 @@ const gateways = {
     apiKey: process.env.DEEPSEEK_API_KEY as string,
     audioFormat: 'openai' as const,
   },
+  copilot: {
+    baseURL: 'https://api.githubcopilot.com',
+    apiKey: process.env.GITHUB_COPILOT_TOKEN as string,
+    audioFormat: 'openai' as const,
+    defaultHeaders: {
+      'User-Agent': 'GitHubCopilotChat/0.31.2',
+      'Editor-Version': 'vscode/1.104.1',
+      'Editor-Plugin-Version': 'copilot-chat/0.31.2',
+      'Copilot-Integration-Id': 'vscode-chat',
+      'Openai-Intent': 'conversation-edits',
+      'X-Initiator': 'user',
+    },
+  },
 }
 
 export interface ChatRunOptions {
