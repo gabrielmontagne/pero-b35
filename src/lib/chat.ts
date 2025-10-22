@@ -2,16 +2,7 @@ import { switchMap } from 'rxjs'
 import { ArgumentsCamelCase, Argv, CommandModule, Options } from 'yargs'
 import { createInputText$, out } from './io'
 import { runChat$, ChatRunOptions } from './run-chat'
-
-const gateways = [
-  'ollama',
-  'openrouter',
-  'gemini',
-  'anthropic',
-  'openai',
-  'deepseek',
-  'copilot',
-] as const
+import { gateways, Gateway } from './gateways'
 
 interface ChatOptions extends Options {
   file: string
@@ -21,7 +12,7 @@ interface ChatOptions extends Options {
   omitDefaultTools: boolean
   omitTools: boolean
   outputOnly: boolean
-  gateway: (typeof gateways)[number]
+  gateway: Gateway
   includeReasoning: boolean
   inlineThink: boolean
   includeTool: string
