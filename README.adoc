@@ -17,6 +17,8 @@ Options:
       --help     Show help                                             [boolean]
       --version  Show version number                                   [boolean]
   -f, --file     file to read from                                      [string]
+  -r, --include-reasoning  include reasoning tokens if available       [boolean]
+  -R, --reasoning-effort   low|medium|high (reasoning-capable models)  [string]
 ```
 
 === Tools configuration lookup

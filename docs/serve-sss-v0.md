@@ -38,6 +38,7 @@ Scope: Add a minimal HTTP server command that mirrors `pero chat` behavior with 
   - `-p, --preamble` (repeatable; files)
   - `-o, --output-only`
   - `-r, --include-reasoning`
+  - `-R, --reasoning-effort` (low|medium|high)
   - `--include-tool` (none|call|result)
   - `--tools-placement` (top|bottom)
 - SSS v0: CORS hard-coded to `*` (no flag yet).
@@ -53,6 +54,7 @@ Scope: Add a minimal HTTP server command that mirrors `pero chat` behavior with 
     - `gateway=openai|openrouter|anthropic|gemini|ollama|deepseek`
     - `output-only=true|false`
     - `include-reasoning=true|false`
+    - `reasoning-effort=low|medium|high`
     - `include-tool=none|call|result`
     - `tools-placement=top|bottom`
     - `omit-tools=true|false`

@@ -26,6 +26,7 @@ interface ChatOptions extends Options {
   includeTool: string
   toolsPlacement: string
   maxTokens: number
+  reasoningEffort: string
 }
 
 class ChatCommand<U extends ChatOptions> implements CommandModule<{}, U> {
@@ -98,6 +99,13 @@ class ChatCommand<U extends ChatOptions> implements CommandModule<{}, U> {
         'include reasoning @@.think / @@ tags in the output, if present',
     })
 
+    args.option('reasoning-effort', {
+      string: true,
+      alias: 'R',
+      choices: ['low', 'medium', 'high'] as any,
+      describe: 'reasoning effort for reasoning-capable models',
+    })
+
     args.option('include-tool', {
       string: true,
       default: 'none',
@@ -133,6 +141,7 @@ class ChatCommand<U extends ChatOptions> implements CommandModule<{}, U> {
       includeTool,
       toolsPlacement,
       maxTokens,
+      reasoningEffort,
     } = args
 
     const omitTools = (args as any).omitTools ?? omitDefaultTools ?? false
@@ -148,6 +157,7 @@ class ChatCommand<U extends ChatOptions> implements CommandModule<{}, U> {
       includeTool: includeTool as any,
       toolsPlacement: toolsPlacement as any,
       maxTokens,
+      reasoningEffort: reasoningEffort as any,
     }
 
     const input$ = createInputText$(file)

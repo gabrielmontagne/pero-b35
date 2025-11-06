@@ -4,7 +4,14 @@ import { catchError, throwError } from 'rxjs'
 import { ArgumentsCamelCase, Argv, CommandModule, Options } from 'yargs'
 import { runChat$, ChatRunOptions } from './run-chat'
 
-const gateways = ['ollama', 'openrouter', 'gemini', 'anthropic', 'openai', 'deepseek'] as const
+const gateways = [
+  'ollama',
+  'openrouter',
+  'gemini',
+  'anthropic',
+  'openai',
+  'deepseek',
+] as const
 
 interface ServeOptions extends Options {
   host: string
@@ -14,7 +21,7 @@ interface ServeOptions extends Options {
   preamble: string[]
   omitTools: boolean
   outputOnly: boolean
-  gateway: typeof gateways[number]
+  gateway: (typeof gateways)[number]
   includeReasoning: boolean
   includeTool: string
   toolsPlacement: string
@@ -23,30 +30,37 @@ interface ServeOptions extends Options {
 function parseQueryParams(url: string): Partial<ChatRunOptions> {
   const parsedUrl = new URL(url, 'http://localhost')
   const params = parsedUrl.searchParams
-  
+
   const options: Partial<ChatRunOptions> = {}
-  
+
   if (params.has('model')) options.model = params.get('model')!
   if (params.has('gateway')) options.gateway = params.get('gateway') as any
-  if (params.has('output-only')) options.outputOnly = params.get('output-only') === 'true'
-  if (params.has('include-reasoning')) options.includeReasoning = params.get('include-reasoning') === 'true'
-  if (params.has('include-tool')) options.includeTool = params.get('include-tool') as any
-  if (params.has('tools-placement')) options.toolsPlacement = params.get('tools-placement') as any
-  if (params.has('omit-tools')) options.omitTools = params.get('omit-tools') === 'true'
-  
+  if (params.has('output-only'))
+    options.outputOnly = params.get('output-only') === 'true'
+  if (params.has('include-reasoning'))
+    options.includeReasoning = params.get('include-reasoning') === 'true'
+  if (params.has('reasoning-effort'))
+    options.reasoningEffort = params.get('reasoning-effort') as any
+  if (params.has('include-tool'))
+    options.includeTool = params.get('include-tool') as any
+  if (params.has('tools-placement'))
+    options.toolsPlacement = params.get('tools-placement') as any
+  if (params.has('omit-tools'))
+    options.omitTools = params.get('omit-tools') === 'true'
+
   const tools = params.getAll('tools').filter(Boolean)
   if (tools.length > 0) options.tools = tools
-  
+
   const preamble = params.getAll('preamble').filter(Boolean)
   if (preamble.length > 0) options.preamble = preamble
-  
+
   return options
 }
 
 class ServeCommand<U extends ServeOptions> implements CommandModule<{}, U> {
   command = 'serve'
   describe = 'Start HTTP server for text-in/text-out chat processing.'
-  
+
   builder(args: Argv): Argv<U> {
     args.option('host', {
       string: true,
@@ -94,7 +108,8 @@ class ServeCommand<U extends ServeOptions> implements CommandModule<{}, U> {
     args.option('preamble', {
       string: true,
       alias: 'p',
-      describe: 'default additional "offline" files to be prepended to the prompt',
+      describe:
+        'default additional "offline" files to be prepended to the prompt',
       array: true,
       default: [],
     })
@@ -110,7 +125,8 @@ class ServeCommand<U extends ServeOptions> implements CommandModule<{}, U> {
       boolean: true,
       default: false,
       alias: 'r',
-      describe: 'default include reasoning @@.think / @@ tags in the output, if present',
+      describe:
+        'default include reasoning @@.think / @@ tags in the output, if present',
     })
 
     args.option('include-tool', {
@@ -124,7 +140,8 @@ class ServeCommand<U extends ServeOptions> implements CommandModule<{}, U> {
       string: true,
       default: 'top',
       choices: ['top', 'bottom'],
-      describe: 'default where to place the @@.tools block within the assistant output',
+      describe:
+        'default where to place the @@.tools block within the assistant output',
     })
 
     return args as Argv<U>
@@ -162,7 +179,7 @@ class ServeCommand<U extends ServeOptions> implements CommandModule<{}, U> {
       res.setHeader('Access-Control-Allow-Origin', '*')
       res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
       res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
-      
+
       if (req.method === 'OPTIONS') {
         res.writeHead(200)
         res.end()
@@ -193,7 +210,7 @@ class ServeCommand<U extends ServeOptions> implements CommandModule<{}, U> {
 
           runChat$(body, options)
             .pipe(
-              catchError(err => {
+              catchError((err) => {
                 console.error('Chat processing error:', err)
                 const statusCode = 400 // Most processing errors are client-side (missing files, etc.)
                 const message = err.message || 'Processing error'
@@ -202,16 +219,22 @@ class ServeCommand<U extends ServeOptions> implements CommandModule<{}, U> {
             )
             .subscribe({
               next: (result) => {
-                res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' })
+                res.writeHead(200, {
+                  'Content-Type': 'text/plain; charset=utf-8',
+                })
                 res.end(result)
               },
               error: (err) => {
                 const statusCode = err.statusCode || 500
                 const message = err.message || 'Internal Server Error'
-                console.error('Request failed:', { statusCode, message, originalError: err })
+                console.error('Request failed:', {
+                  statusCode,
+                  message,
+                  originalError: err,
+                })
                 res.writeHead(statusCode, { 'Content-Type': 'text/plain' })
                 res.end(message)
-              }
+              },
             })
         } catch (err) {
           console.error('Request processing error:', err)
@@ -236,7 +259,7 @@ class ServeCommand<U extends ServeOptions> implements CommandModule<{}, U> {
     process.on('unhandledRejection', (reason, promise) => {
       console.error('Unhandled Rejection - Server staying alive:', {
         reason,
-        promise: promise.toString()
+        promise: promise.toString(),
       })
       // Don't exit, keep server running
     })

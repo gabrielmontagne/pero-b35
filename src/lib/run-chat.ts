@@ -52,6 +52,7 @@ export interface ChatRunOptions {
   includeTool: 'none' | 'call' | 'result'
   toolsPlacement: 'top' | 'bottom'
   maxTokens?: number
+  reasoningEffort?: 'low' | 'medium' | 'high'
 }
 
 export function resolveAutoToolsPath(
@@ -87,6 +88,7 @@ export function runChat$(
     includeTool,
     toolsPlacement,
     maxTokens,
+    reasoningEffort,
   } = options
 
   const defaultToolsPath = path.join(__dirname, '..', '..', 'tools.yaml')
@@ -115,7 +117,9 @@ export function runChat$(
                 gatewayConfig,
                 includeReasoning,
                 maxTokens,
+                reasoningEffort,
               }),
+
               recombineWithOriginal({
                 original,
                 outputOnly,

@@ -19,6 +19,7 @@ export function scanSession({
   gatewayConfig,
   includeReasoning,
   maxTokens,
+  reasoningEffort,
   depth = 0,
 }: {
   tools: ToolsConfig | null
@@ -31,6 +32,7 @@ export function scanSession({
   }
   includeReasoning?: boolean
   maxTokens?: number
+  reasoningEffort?: 'low' | 'medium' | 'high'
 }): MonoTypeOperatorFunction<Session> {
   return (source$) =>
     source$.pipe(
@@ -40,7 +42,10 @@ export function scanSession({
           openai.chat.completions.create({
             model,
             messages: session,
-            ...(includeReasoning && { include_reasoning: true }),
+            ...((includeReasoning || reasoningEffort) && {
+              include_reasoning: true,
+            }),
+            ...(reasoningEffort && { reasoning: { effort: reasoningEffort } }),
             ...(maxTokens && { max_tokens: maxTokens }),
             ...(tools && {
               tools: tools.api,
@@ -57,11 +62,18 @@ export function scanSession({
               throw new Error('Too many tool calls')
             }
 
-            if (e.toolsMessages) {
-              const toolMessages = e.toolsMessages
+            if ((e as any).toolsMessages) {
+              const toolMessages = (e as any).toolsMessages
               const sessionWithTools = [...session, ...toolMessages]
               return of([...sessionWithTools]).pipe(
-                scanSession({ tools, model, depth: depth + 1, gatewayConfig })
+                scanSession({
+                  tools,
+                  model,
+                  depth: depth + 1,
+                  gatewayConfig,
+                  includeReasoning,
+                  reasoningEffort,
+                })
               )
             }
             throw e
