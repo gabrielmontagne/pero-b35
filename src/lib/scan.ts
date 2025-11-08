@@ -55,8 +55,19 @@ export function scanSession({
         ).pipe(
           flog('Raw response'),
           runToolsIfNeeded(tools?.commandByName),
-          map((response) => response.choices.map((c) => c.message)),
-          map((choices) => [...session, ...choices]),
+          map((response) => {
+            const choices = response.choices.map((c) => c.message)
+            const annotations =
+              (response.choices[0] as any)?.message?.annotations || []
+            return { choices, annotations }
+          }),
+          map(({ choices, annotations }) => {
+            const lastMessage = choices[choices.length - 1]
+            if (lastMessage && annotations.length > 0) {
+              ;(lastMessage as any).annotations = annotations
+            }
+            return [...session, ...choices]
+          }),
           catchError((e) => {
             if (depth > 20) {
               throw new Error('Too many tool calls')

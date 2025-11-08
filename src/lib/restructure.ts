@@ -142,7 +142,7 @@ export function recombineWithOriginal({
 
     const entries = extractLastToolPhase(session)
     const toolsBlock = makeToolsBlock(entries, { mode: includeTool })
-    const combined = insertToolsBlock(
+    let combined = insertToolsBlock(
       assistantText,
       toolsBlock,
       reasoning,
@@ -150,15 +150,29 @@ export function recombineWithOriginal({
       toolsPlacement
     )
 
+    const annotations = m.annotations || []
+    if (annotations.length > 0) {
+      const citationLines = annotations
+        .filter((a: any) => a.type === 'url_citation')
+        .map((a: any, i: number) => {
+          const citation = a.url_citation
+          return `   [${i + 1}] ${citation.title}\n       ${citation.url}`
+        })
+        .join('\n')
+
+      if (citationLines) {
+        combined += `\n\nReferences\n\n${citationLines}`
+      }
+    }
+
     if (outputOnly) return combined
     return `${original}\nA>>\n\n${combined}\n\nQ>>\n\n`
   })
 }
 
-
 function pair(t: string) {
   const result: Partial<{ key: string; content: string }>[] = []
-  
+
   const filteredText = t.replace(/^%%%.*$/gm, '')
 
   return filteredText.split(/^(\w)>>/m).reduceRight(
