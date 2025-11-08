@@ -19,7 +19,7 @@ interface ServeOptions extends Options {
   model: string
   tools: string[]
   preamble: string[]
-  omitTools: boolean
+  defaultTools: boolean
   outputOnly: boolean
   gateway: (typeof gateways)[number]
   includeReasoning: boolean
@@ -45,8 +45,8 @@ function parseQueryParams(url: string): Partial<ChatRunOptions> {
     options.includeTool = params.get('include-tool') as any
   if (params.has('tools-placement'))
     options.toolsPlacement = params.get('tools-placement') as any
-  if (params.has('omit-tools'))
-    options.omitTools = params.get('omit-tools') === 'true'
+  if (params.has('default-tools'))
+    options.defaultTools = params.get('default-tools') === 'true'
 
   const tools = params.getAll('tools').filter(Boolean)
   if (tools.length > 0) options.tools = tools
@@ -91,10 +91,10 @@ class ServeCommand<U extends ServeOptions> implements CommandModule<{}, U> {
       default: [],
     })
 
-    args.option('omit-tools', {
+    args.option('default-tools', {
       boolean: true,
       default: false,
-      describe: 'do not include automatic tools (local or default)',
+      describe: 'include auto-discovered tools (local or default)',
     })
 
     args.option('gateway', {
@@ -155,7 +155,7 @@ class ServeCommand<U extends ServeOptions> implements CommandModule<{}, U> {
       gateway,
       tools,
       preamble,
-      omitTools,
+      defaultTools,
       outputOnly,
       includeReasoning,
       includeTool,
@@ -167,7 +167,7 @@ class ServeCommand<U extends ServeOptions> implements CommandModule<{}, U> {
       gateway,
       tools,
       preamble,
-      omitTools,
+      defaultTools,
       outputOnly,
       includeReasoning,
       includeTool: includeTool as any,

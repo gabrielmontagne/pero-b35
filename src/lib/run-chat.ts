@@ -46,7 +46,7 @@ export interface ChatRunOptions {
   gateway: keyof typeof gateways
   tools: string[]
   preamble: string[]
-  omitTools: boolean
+  defaultTools: boolean
   outputOnly: boolean
   includeReasoning: boolean
   includeTool: 'none' | 'call' | 'result'
@@ -82,7 +82,7 @@ export function runChat$(
     gateway,
     tools,
     preamble,
-    omitTools,
+    defaultTools,
     outputOnly,
     includeReasoning,
     includeTool,
@@ -95,7 +95,7 @@ export function runChat$(
   const autoToolsPath = resolveAutoToolsPath(process.cwd(), defaultToolsPath)
 
   const finalToolPaths = [
-    ...(omitTools || !autoToolsPath ? [] : [autoToolsPath]),
+    ...(defaultTools && autoToolsPath ? [autoToolsPath] : []),
     ...tools,
   ]
 

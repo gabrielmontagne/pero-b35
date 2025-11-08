@@ -14,20 +14,30 @@ pero chat
 chat endpoints
 
 Options:
-      --help     Show help                                             [boolean]
-      --version  Show version number                                   [boolean]
-  -f, --file     file to read from                                      [string]
-  -r, --include-reasoning  include reasoning tokens if available       [boolean]
-  -R, --reasoning-effort   low|medium|high (reasoning-capable models)  [string]
+      --help                  Show help                                [boolean]
+      --version               Show version number                      [boolean]
+  -f, --file                  file to read from                         [string]
+  -m, --model                 model to use                              [string]
+  -g, --gateway               gateway provider                          [string]
+  -t, --tools                 tools config file(s)                       [array]
+      --default-tools         include auto-discovered tools           [boolean]
+  -p, --preamble              offline files to prepend to prompt         [array]
+  -o, --output-only           output only, no chat formatting         [boolean]
+  -r, --include-reasoning     include reasoning tokens if available   [boolean]
+  -R, --reasoning-effort      low|medium|high (reasoning models)        [string]
+      --include-tool          none|call|result (include @@.tools block) [string]
+      --tools-placement       top|bottom (placement of @@.tools block)  [string]
+      --max-tokens            maximum tokens to generate                [number]
 ```
 
-=== Tools configuration lookup
+=== Tools configuration
 
-- If -t/--tools is provided, those files are loaded (in order).
-- Otherwise, an automatic tools file is selected in this order:
+Tools are disabled by default. Enable them with:
+
+- `--default-tools` - Load auto-discovered tools from:
   1) ./tools.yaml in current working directory
-  2) ./tools.yml in current working directory
+  2) ./tools.yml in current working directory  
   3) bundled default tools.yaml
-- Explicit -t files are merged after the automatic file and override on name conflicts.
-- Use --omit-tools to disable the automatic tools file (only explicit -t files will be used).
-- --omit-default-tools is deprecated; use --omit-tools instead.
+- `-t, --tools <file>` - Load specific tool configuration file(s)
+
+Combine both flags to load auto-discovered and custom tools together.

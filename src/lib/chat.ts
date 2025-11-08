@@ -17,8 +17,7 @@ interface ChatOptions extends Options {
   model: string
   tools: string[]
   preamble: string[]
-  omitDefaultTools: boolean
-  omitTools: boolean
+  defaultTools: boolean
   outputOnly: boolean
   gateway: (typeof gateways)[number]
   includeReasoning: boolean
@@ -54,17 +53,11 @@ class ChatCommand<U extends ChatOptions> implements CommandModule<{}, U> {
       default: [],
     })
 
-    args.option('omit-tools', {
+    args.option('default-tools', {
       boolean: true,
       default: false,
-      describe: 'do not include automatic tools (local or default)',
-    })
-
-    args.option('omit-default-tools', {
-      boolean: true,
-      default: false,
-      describe: 'do not include the default tools',
-      deprecated: 'use --omit-tools',
+      describe:
+        'include auto-discovered tools (local tools.yaml or project default)',
     })
 
     args.option('gateway', {
@@ -133,7 +126,7 @@ class ChatCommand<U extends ChatOptions> implements CommandModule<{}, U> {
       file,
       model,
       gateway,
-      omitDefaultTools,
+      defaultTools,
       tools,
       preamble,
       outputOnly,
@@ -144,14 +137,12 @@ class ChatCommand<U extends ChatOptions> implements CommandModule<{}, U> {
       reasoningEffort,
     } = args
 
-    const omitTools = (args as any).omitTools ?? omitDefaultTools ?? false
-
     const options: ChatRunOptions = {
       model,
       gateway,
       tools,
       preamble,
-      omitTools,
+      defaultTools,
       outputOnly,
       includeReasoning,
       includeTool: includeTool as any,
