@@ -37,3 +37,8 @@ ask_for_supervisor_feedback:
   parameters:
     query: The question (with context) you'd like feedback on.
   command: echo "{{query}}" | vipe
+
+_mcp_servers:
+  time:
+    command: uvx
+    args: [mcp-server-time, --local-timezone=Europe/Berlin]
