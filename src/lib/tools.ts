@@ -33,6 +33,7 @@ type RawTool = {
   parameters?: Record<string, string>
   command: string
   stdin_param?: string
+  enabled?: boolean
 }
 
 // Executor types for unified dispatch
@@ -105,9 +106,18 @@ export function parseToolsConfig(config: string): ParsedConfig {
 
   for (const [name, value] of Object.entries(raw)) {
     if (name === MCP_SERVERS_KEY) {
-      result.mcpServers = value as McpServersConfig
+      // Filter out disabled MCP servers
+      const servers = value as McpServersConfig
+      for (const [serverName, serverConfig] of Object.entries(servers)) {
+        if (serverConfig.enabled !== false) {
+          result.mcpServers[serverName] = serverConfig
+        }
+      }
     } else {
       const tool = value as RawTool
+      // Skip disabled tools
+      if (tool.enabled === false) continue
+
       const { description, parameters = {}, command, stdin_param } = tool
 
       const properties = Object.entries(parameters).reduce(

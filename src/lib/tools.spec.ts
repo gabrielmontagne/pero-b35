@@ -52,6 +52,42 @@ _mcp_servers:
   })
 })
 
+describe('enabled flag', () => {
+  it('should skip disabled bash tools', () => {
+    const config = `
+active_tool:
+  description: An active tool
+  command: echo "active"
+
+disabled_tool:
+  enabled: false
+  description: A disabled tool
+  command: echo "disabled"
+`
+    const result = parseToolsConfig(config)
+    expect(result.api).toHaveLength(1)
+    expect(result.api[0].function.name).toBe('active_tool')
+    expect(result.executors).toHaveProperty('active_tool')
+    expect(result.executors).not.toHaveProperty('disabled_tool')
+  })
+
+  it('should skip disabled MCP servers', () => {
+    const config = `
+_mcp_servers:
+  active_server:
+    command: uvx
+    args: [mcp-server-time]
+  disabled_server:
+    enabled: false
+    command: npx
+    args: [-y, some-server]
+`
+    const result = parseToolsConfig(config)
+    expect(result.mcpServers).toHaveProperty('active_server')
+    expect(result.mcpServers).not.toHaveProperty('disabled_server')
+  })
+})
+
 describe('tools config', () => {
   const config = `
 

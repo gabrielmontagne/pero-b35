@@ -7,6 +7,7 @@ import { Observable, from, forkJoin, map, switchMap, of } from 'rxjs'
 export type McpServerConfig = {
   command: string
   args?: string[]
+  enabled?: boolean
 }
 
 export type McpServersConfig = Record<string, McpServerConfig>

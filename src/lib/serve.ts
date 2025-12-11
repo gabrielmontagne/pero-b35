@@ -80,7 +80,7 @@ class ServeCommand<U extends ServeOptions> implements CommandModule<{}, U> {
       alias: 'm',
       describe: 'default model to use',
       type: 'string',
-      default: 'openai/gpt-4o',
+      default: 'anthropic/claude-sonnet-4.5',
     })
 
     args.option('tools', {

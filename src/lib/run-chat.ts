@@ -1,5 +1,5 @@
 import path from 'path'
-import { combineLatest, map, Observable, of, switchMap } from 'rxjs'
+import { combineLatest, finalize, map, Observable, of, switchMap } from 'rxjs'
 import {
   includePreamble,
   parseSession,
@@ -8,7 +8,7 @@ import {
   startEndSplit,
 } from './restructure'
 import { scanSession } from './scan'
-import { readToolsConfig$ } from './tools'
+import { readToolsConfig$, ToolsConfig } from './tools'
 
 const gateways = {
   ollama: {
@@ -99,6 +99,8 @@ export function runChat$(
     ...tools,
   ]
 
+  let toolsConfig: ToolsConfig | null = null
+
   return combineLatest({
     gatewayConfig: of(gateways[gateway]),
     input: of(text).pipe(map(startEndSplit)),
@@ -106,6 +108,7 @@ export function runChat$(
   }).pipe(
     switchMap(
       ({ input: { main, leading, trailing }, tools, gatewayConfig }) => {
+        toolsConfig = tools
         return of(main).pipe(
           switchMap((original) =>
             of(original).pipe(
@@ -132,6 +135,14 @@ export function runChat$(
           )
         )
       }
-    )
+    ),
+    finalize(() => {
+      // Close MCP clients to allow process to exit
+      if (toolsConfig?.mcpClients) {
+        for (const client of toolsConfig.mcpClients.values()) {
+          client.close().catch(() => {})
+        }
+      }
+    })
   )
 }
