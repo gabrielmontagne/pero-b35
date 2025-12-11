@@ -41,3 +41,69 @@ Tools are disabled by default. Enable them with:
 - `-t, --tools <file>` - Load specific tool configuration file(s)
 
 Combine both flags to load auto-discovered and custom tools together.
+
+==== Bash tools
+
+Define shell commands as tools in YAML:
+
+```yaml
+read_file:
+  description: Read the contents of a file
+  parameters:
+    file_path: The path to the file to read
+  command: cat "{{file_path}}"
+
+search_web:
+  description: Search the web
+  parameters:
+    query: The search query
+  command: ddgr -C -x --np -n 25 "{{query}}"
+```
+
+==== MCP servers
+
+Connect to https://modelcontextprotocol.io[Model Context Protocol] servers by adding `_mcp_servers` to your tools.yaml:
+
+```yaml
+_mcp_servers:
+  time:
+    command: uvx
+    args: [mcp-server-time, --local-timezone=Europe/Warsaw]
+  
+  filesystem:
+    command: npx
+    args: [-y, "@modelcontextprotocol/server-filesystem", "/home/user/docs"]
+```
+
+MCP servers are connected on startup, their tools are discovered automatically and merged with any bash tools. Environment variables are inherited from the parent process.
+
+=== Content interpolation
+
+User messages support special tags for including external content:
+
+==== Text files
+
+```
+[txt[path/to/file.txt]]
+```
+
+Includes the file content wrapped in `<FILE path="...">` tags.
+
+==== Images
+
+```
+[img[path/to/image.jpg]]
+[img[https://example.com/image.png]]
+```
+
+Local images are base64-encoded; remote URLs are passed directly.
+
+==== Audio
+
+```
+[audio[path/to/recording.wav]]
+```
+
+Supported formats: `.wav`, `.mp3`, `.m4a`, `.ogg`, `.flac`, `.aac`, `.webm`
+
+Audio handling varies by gateway (OpenAI uses `input_audio`, Gemini uses `inline_data`).

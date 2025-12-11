@@ -1,6 +1,93 @@
 import { formatCommand, parseToolsConfig } from './tools'
 import { describe, expect, it } from 'vitest'
 
+describe('MCP config parsing', () => {
+  const configWithMcp = `
+read_file:
+  description: Read the contents of a file
+  parameters:
+    file_path: The path to the file to read
+  command: "cat {{file_path}}"
+
+_mcp_servers:
+  time:
+    command: uvx
+    args:
+      - mcp-server-time
+      - --local-timezone=Europe/Warsaw
+  memory:
+    command: npx
+    args:
+      - -y
+      - "@modelcontextprotocol/server-memory"
+`
+
+  it('should separate bash tools from MCP server configs', () => {
+    const result = parseToolsConfig(configWithMcp)
+
+    // Should have one bash tool
+    expect(result.api).toHaveLength(1)
+    expect(result.api[0].function.name).toBe('read_file')
+
+    // Should have one bash executor
+    expect(result.executors).toEqual({
+      read_file: {
+        type: 'bash',
+        command: 'cat {{file_path}}',
+        stdin_param: undefined,
+      },
+    })
+
+    // Should have two MCP servers
+    expect(result.mcpServers).toEqual({
+      time: {
+        command: 'uvx',
+        args: ['mcp-server-time', '--local-timezone=Europe/Warsaw'],
+      },
+      memory: {
+        command: 'npx',
+        args: ['-y', '@modelcontextprotocol/server-memory'],
+      },
+    })
+  })
+})
+
+describe('enabled flag', () => {
+  it('should skip disabled bash tools', () => {
+    const config = `
+active_tool:
+  description: An active tool
+  command: echo "active"
+
+disabled_tool:
+  enabled: false
+  description: A disabled tool
+  command: echo "disabled"
+`
+    const result = parseToolsConfig(config)
+    expect(result.api).toHaveLength(1)
+    expect(result.api[0].function.name).toBe('active_tool')
+    expect(result.executors).toHaveProperty('active_tool')
+    expect(result.executors).not.toHaveProperty('disabled_tool')
+  })
+
+  it('should skip disabled MCP servers', () => {
+    const config = `
+_mcp_servers:
+  active_server:
+    command: uvx
+    args: [mcp-server-time]
+  disabled_server:
+    enabled: false
+    command: npx
+    args: [-y, some-server]
+`
+    const result = parseToolsConfig(config)
+    expect(result.mcpServers).toHaveProperty('active_server')
+    expect(result.mcpServers).not.toHaveProperty('disabled_server')
+  })
+})
+
 describe('tools config', () => {
   const config = `
 
@@ -79,12 +166,24 @@ search_web:
     ])
   })
 
-  it('should index tool commands by name', () => {
+  it('should index tool executors by name', () => {
     const tools = parseToolsConfig(config)
-    expect(tools.commandByName).toEqual({
-      read_file: { command: 'cat {file_path}', stdin_param: undefined },
-      read_web_page: { command: 'elinks {url}', stdin_param: undefined },
-      search_web: { command: 'googler --np {query}', stdin_param: undefined },
+    expect(tools.executors).toEqual({
+      read_file: {
+        type: 'bash',
+        command: 'cat {file_path}',
+        stdin_param: undefined,
+      },
+      read_web_page: {
+        type: 'bash',
+        command: 'elinks {url}',
+        stdin_param: undefined,
+      },
+      search_web: {
+        type: 'bash',
+        command: 'googler --np {query}',
+        stdin_param: undefined,
+      },
     })
   })
 })
