@@ -18,6 +18,13 @@ import {
 } from 'rxjs'
 import { createInputText$ } from './io'
 import { flog } from './log'
+import {
+  McpClients,
+  McpServersConfig,
+  McpToolEntry,
+  connectMcpServers$,
+  callMcpTool$,
+} from './mcp'
 
 type ApiTools = ChatCompletionTool[]
 
@@ -28,79 +35,115 @@ type RawTool = {
   stdin_param?: string
 }
 
-type RawTools = Record<string, RawTool>
+// Executor types for unified dispatch
+export type BashToolEntry = {
+  type: 'bash'
+  command: string
+  stdin_param?: string
+}
+
+export type ToolExecutor = BashToolEntry | McpToolEntry
 
 export type ToolsConfig = {
   api: ApiTools
-  commandByName: Record<string, { command: string; stdin_param?: string }>
+  executors: Record<string, ToolExecutor>
+  mcpClients: McpClients
 }
 
 type ToolResult = ChatCompletionToolMessageParam
 
-export function readToolsConfig$(paths: string[]) {
+const MCP_SERVERS_KEY = '_mcp_servers'
+
+type ParsedConfig = {
+  api: ApiTools
+  executors: Record<string, ToolExecutor>
+  mcpServers: McpServersConfig
+}
+
+export function readToolsConfig$(
+  paths: string[]
+): Observable<ToolsConfig | null> {
   if (!paths.length) return of(null)
 
   return combineLatest(paths.map(createInputText$)).pipe(
     map((yamls) => {
-      const initial: ToolsConfig = { api: [], commandByName: {} }
+      const initial: ParsedConfig = { api: [], executors: {}, mcpServers: {} }
       return yamls.reduce((acc, next) => {
         const nextTools = parseToolsConfig(next)
         return {
           api: [...acc.api, ...nextTools.api],
-          commandByName: {
-            ...acc.commandByName,
-            ...nextTools.commandByName,
-          },
+          executors: { ...acc.executors, ...nextTools.executors },
+          mcpServers: { ...acc.mcpServers, ...nextTools.mcpServers },
         }
       }, initial)
+    }),
+    switchMap((parsed) => {
+      // If no MCP servers, return config without connecting
+      if (Object.keys(parsed.mcpServers).length === 0) {
+        return of({
+          api: parsed.api,
+          executors: parsed.executors,
+          mcpClients: new Map() as McpClients,
+        })
+      }
+
+      // Connect to MCP servers and merge their tools
+      return connectMcpServers$(parsed.mcpServers).pipe(
+        map((mcpResult) => ({
+          api: [...parsed.api, ...mcpResult.api],
+          executors: { ...parsed.executors, ...mcpResult.executors },
+          mcpClients: mcpResult.clients,
+        }))
+      )
     })
   )
 }
 
-export function parseToolsConfig(config: string) {
-  // TODO validate the config
-  const rawTools: RawTools = yaml.load(config) as RawTools
-  const result: ToolsConfig = { api: [], commandByName: {} }
-  return Object.entries(rawTools).reduce(toConfig, result)
-}
+export function parseToolsConfig(config: string): ParsedConfig {
+  const raw = yaml.load(config) as Record<string, unknown>
+  const result: ParsedConfig = { api: [], executors: {}, mcpServers: {} }
 
-function toConfig(acc: ToolsConfig, [name, tool]: [string, RawTool]) {
-  const { description, parameters = {}, command, stdin_param } = tool
+  for (const [name, value] of Object.entries(raw)) {
+    if (name === MCP_SERVERS_KEY) {
+      result.mcpServers = value as McpServersConfig
+    } else {
+      const tool = value as RawTool
+      const { description, parameters = {}, command, stdin_param } = tool
 
-  const properties = Object.entries(parameters).reduce(
-    (acc, [key, value]) => ({
-      ...acc,
-      [key]: { type: 'string', description: value },
-    }),
-    {}
-  )
+      const properties = Object.entries(parameters).reduce(
+        (acc, [key, val]) => ({
+          ...acc,
+          [key]: { type: 'string', description: val },
+        }),
+        {}
+      )
 
-  const apiTool: ChatCompletionTool = {
-    function: {
-      name,
-      description,
-      parameters: {
-        type: 'object',
-        properties,
-        required: Object.keys(parameters),
-      },
-    },
-    type: 'function',
+      const apiTool: ChatCompletionTool = {
+        function: {
+          name,
+          description,
+          parameters: {
+            type: 'object',
+            properties,
+            required: Object.keys(parameters),
+          },
+        },
+        type: 'function',
+      }
+
+      result.api.push(apiTool)
+      result.executors[name] = { type: 'bash', command, stdin_param }
+    }
   }
 
-  return {
-    api: [...acc.api, apiTool],
-    commandByName: {
-      ...acc.commandByName,
-      [name]: { command, stdin_param: stdin_param },
-    },
-  }
+  return result
 }
 
 export function runToolsIfNeeded(
-  commandByName?: Record<string, { command: string; stdin_param?: string }>
+  executors?: Record<string, ToolExecutor>,
+  mcpClients?: McpClients
 ): MonoTypeOperatorFunction<ChatCompletion> {
-  if (!commandByName) return (source$) => source$
+  if (!executors) return (source$) => source$
   return (source$) =>
     source$.pipe(
       switchMap((response) => {
@@ -115,8 +158,8 @@ export function runToolsIfNeeded(
           const toolCalls = firstChoice.message.tool_calls
 
           if (!toolCalls) return of(response)
-          
-         toolCalls.forEach((call) => {
+
+          toolCalls.forEach((call) => {
             if (!call.id) {
               call.id = `pero-gen-${Math.random().toString(36).substring(2, 9)}`
             }
@@ -125,8 +168,14 @@ export function runToolsIfNeeded(
           const runCommands = toolCalls.map((toolCall) => {
             const { id, function: fn } = toolCall
             const { name, arguments: args } = fn
-            const toolConfig = commandByName[name]
-            return runCommand$(toolConfig, JSON.parse(args), id)
+            const executor = executors[name]
+            const parsedArgs = JSON.parse(args)
+
+            if (executor.type === 'bash') {
+              return runBashCommand$(executor, parsedArgs, id)
+            } else {
+              return runMcpTool$(mcpClients!, executor, parsedArgs, id)
+            }
           })
 
           return forkJoin(runCommands).pipe(
@@ -142,14 +191,32 @@ export function runToolsIfNeeded(
     )
 }
 
-function runCommand$(
-  // commandTemplate: string,
-  toolConfig: { command: string; stdin_param?: string },
+function runMcpTool$(
+  clients: McpClients,
+  executor: McpToolEntry,
+  args: Record<string, unknown>,
+  id: string
+): Observable<ToolResult> {
+  return callMcpTool$(
+    clients,
+    executor.serverName,
+    executor.toolName,
+    args
+  ).pipe(
+    map((content) => ({
+      tool_call_id: id,
+      content,
+      role: 'tool' as const,
+    })),
+    flog(`Run MCP tool »${executor.serverName}/${executor.toolName}«`)
+  )
+}
+
+function runBashCommand$(
+  toolConfig: BashToolEntry,
   args: Record<string, string>,
   id: string
 ): Observable<ToolResult> {
-  // const command = formatCommand(commandTemplate, args)
-
   const { command: commandTemplate, stdin_param } = toolConfig
 
   let stdinContent: string | undefined
@@ -197,7 +264,9 @@ function runCommand$(
       // Write with a callback to ensure proper error handling
       child.stdin.write(stdinContent, (err) => {
         if (err) {
-          console.error(`Error writing to stdin for command "${command}": ${err.message}`)
+          console.error(
+            `Error writing to stdin for command "${command}": ${err.message}`
+          )
         }
         // Always try to end the stream, even if write failed
         try {
@@ -205,11 +274,12 @@ function runCommand$(
             child.stdin.end()
           }
         } catch (endErr) {
-          console.error(`Error ending stdin for command "${command}": ${endErr}`)
+          console.error(
+            `Error ending stdin for command "${command}": ${endErr}`
+          )
         }
       })
     }
-
   }).pipe(flog(`Run commnd »${command}«`))
 }
 

@@ -54,7 +54,7 @@ export function scanSession({
           } as OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming)
         ).pipe(
           flog('Raw response'),
-          runToolsIfNeeded(tools?.commandByName),
+          runToolsIfNeeded(tools?.executors, tools?.mcpClients),
           map((response) => {
             const choices = response.choices.map((c) => c.message)
             const annotations =
