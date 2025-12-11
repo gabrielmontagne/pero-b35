@@ -76,3 +76,34 @@ _mcp_servers:
 ```
 
 MCP servers are connected on startup, their tools are discovered automatically and merged with any bash tools. Environment variables are inherited from the parent process.
+
+=== Content interpolation
+
+User messages support special tags for including external content:
+
+==== Text files
+
+```
+[txt[path/to/file.txt]]
+```
+
+Includes the file content wrapped in `<FILE path="...">` tags.
+
+==== Images
+
+```
+[img[path/to/image.jpg]]
+[img[https://example.com/image.png]]
+```
+
+Local images are base64-encoded; remote URLs are passed directly.
+
+==== Audio
+
+```
+[audio[path/to/recording.wav]]
+```
+
+Supported formats: `.wav`, `.mp3`, `.m4a`, `.ogg`, `.flac`, `.aac`, `.webm`
+
+Audio handling varies by gateway (OpenAI uses `input_audio`, Gemini uses `inline_data`).
