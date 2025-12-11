@@ -41,4 +41,5 @@ ask_for_supervisor_feedback:
 _mcp_servers:
   time:
     command: uvx
+    enabled: false
     args: [mcp-server-time, --local-timezone=Europe/Berlin]
