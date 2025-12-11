@@ -17,7 +17,7 @@ Pero-B35 is a TypeScript CLI tool that provides a thin wrapper around OpenAI-com
 
 - `npx pero chat` - Start chat interface
 - `npx pero chat -f <file>` - Read from file instead of stdin
-- `npx pero chat -m <model>` - Specify model (default: openai/gpt-4o)
+- `npx pero chat -m <model>` - Specify model (default: anthropic/claude-sonnet-4.5)
 - `npx pero chat -g <gateway>` - Choose gateway (openai, openrouter, anthropic, etc.)
 - `npx pero chat -t <tools.yaml>` - Load additional tools configuration
 - `npx pero chat -o` - Output only mode (no chat formatting)
@@ -33,7 +33,7 @@ Pero-B35 is a TypeScript CLI tool that provides a thin wrapper around OpenAI-com
 
 **Session Management** (`src/lib/scan.ts`): Manages chat completions with recursive tool calling support. Handles the interaction with OpenAI-compatible APIs and tool execution loops.
 
-**Text Processing** (`src/lib/restructure.ts`): Handles parsing and formatting of chat sessions. Supports special syntax for role headers (S>>, Q>>, A>>) and __START__/__END__ markers for content boundaries. Lines starting with `%%%` are treated as comments and filtered out during processing.
+**Text Processing** (`src/lib/restructure.ts`): Handles parsing and formatting of chat sessions. Supports special syntax for role headers (S>>, Q>>, A>>) and **START**/**END** markers for content boundaries. Lines starting with `%%%` are treated as comments and filtered out during processing.
 
 **Tools System** (`src/lib/tools.ts`): Dynamic tool system that converts YAML tool definitions into OpenAI function calling format. Executes shell commands with parameter interpolation using {{parameter}} syntax.
 
