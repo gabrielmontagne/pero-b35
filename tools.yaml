@@ -40,6 +40,11 @@ ask_for_supervisor_feedback:
 
 _mcp_servers:
   time:
-    command: uvx
     enabled: false
+    command: uvx
     args: [mcp-server-time, --local-timezone=Europe/Berlin]
+  deep-research:
+    enabled: false
+    command: deep-research-gemini
+    args: [--report-dir, './transient']
+    timeout: 1200000 # 20 minutes for deep research operations
