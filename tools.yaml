@@ -18,7 +18,7 @@ read_web_page:
   description: Read the contents of a web page
   parameters:
     url: The URL of the web page to read
-  command: elinks "{{url}}"
+  command: elinks --dump "{{url}}"
 
 search_web:
   description: Search the web for a given query
