@@ -2,7 +2,7 @@
 
 image::pero.png[Pero from Metropolis]
 
-A lightweight CLI for comfortable command-line chat with LLMs. Named after Pero, the robot detective from Rintaro's _Metropolis_ (2001). Thin wrapper around OpenAI-compatible APIs with tool calling, multimodal input, and MCP support.
+A lightweight CLI for comfortable command-line chat with LLMs. Named after Pero, the robot detective from Rintaro's _Metropolis_. Thin wrapper around OpenAI-compatible APIs with tool calling, multimodal input, and MCP support.
 
 == Commands
 
