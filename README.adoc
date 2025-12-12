@@ -174,7 +174,25 @@ search_web:
   parameters:
     query: The search query
   command: ddgr -C -x --np -n 25 "{{query}}"
+  timeout: 30000  # optional: 30 second timeout
+
+long_running_task:
+  description: A task that takes a while
+  parameters:
+    input: Task input
+  command: ./slow-script.sh "{{input}}"
+  timeout: 300000  # optional: 5 minute timeout
 ```
+
+Tool configuration options:
+
+- `description`: Tool description for the AI
+- `parameters`: Parameter definitions with descriptions
+- `command`: Shell command template with `{{parameter}}` placeholders
+- `stdin_param`: Optional parameter to pass via stdin
+- `enabled`: Optional boolean to disable a tool (default: true)
+- `timeout`: Optional timeout in milliseconds (default: no timeout)
+  - On timeout: Tool returns error message, process is killed
 
 ==== MCP servers
 
@@ -189,9 +207,22 @@ _mcp_servers:
   filesystem:
     command: npx
     args: [-y, "@modelcontextprotocol/server-filesystem", "/home/user/docs"]
+  
+  deep-research:
+    command: deep-research-gemini
+    args: [--report-dir, './transient']
+    timeout: 1200000  # 20 minutes for long-running research
 ```
 
 MCP servers are connected on startup, their tools are discovered automatically and merged with any bash tools. Environment variables are inherited from the parent process.
+
+MCP server configuration options:
+
+- `command`: Executable to run
+- `args`: Command line arguments (array)
+- `enabled`: Optional boolean to disable the server (default: true)
+- `timeout`: Optional timeout in milliseconds for tool calls (default: 300000 / 5 minutes)
+  - On timeout: Request is aborted, tool returns error message
 
 === Content interpolation
 

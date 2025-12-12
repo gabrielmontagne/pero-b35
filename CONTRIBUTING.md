@@ -73,6 +73,10 @@ Tools are defined in YAML format (`tools.yaml`) with:
 - `parameters`: Parameter definitions with descriptions
 - `command`: Shell command template with {{parameter}} placeholders
 - `stdin_param`: Optional parameter to pass via stdin
+- `enabled`: Optional boolean to disable a tool (default: true)
+- `timeout`: Optional timeout in milliseconds
+  - Bash tools: No default (runs indefinitely)
+  - On timeout: Tool returns error message, underlying process is aborted and killed
 
 ## Environment Setup
 

@@ -1,13 +1,23 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 import { ChatCompletionTool } from 'openai/resources'
-import { Observable, from, forkJoin, map, switchMap, of } from 'rxjs'
+import {
+  Observable,
+  from,
+  forkJoin,
+  map,
+  switchMap,
+  of,
+  timeout,
+  TimeoutError,
+} from 'rxjs'
 
 // Config types (Phase 1: stdio only)
 export type McpServerConfig = {
   command: string
   args?: string[]
   enabled?: boolean
+  timeout?: number
 }
 
 export type McpServersConfig = Record<string, McpServerConfig>
@@ -19,6 +29,7 @@ export type McpToolEntry = {
   type: 'mcp'
   serverName: string
   toolName: string
+  timeout?: number
 }
 
 export type McpToolsResult = {
@@ -38,12 +49,22 @@ function connectMcpServer$(
     const transport = new StdioClientTransport({
       command: config.command,
       args: config.args,
+      env: process.env as Record<string, string>,
+      stderr: 'pipe',
     })
 
     const client = new Client(
       { name: 'pero', version: '0.0.1' },
       { capabilities: {} }
     )
+
+    // Swallow MCP server stderr to avoid corrupting chat output
+    const stderrStream = (transport as any).stderr
+    if (stderrStream && typeof stderrStream.on === 'function') {
+      stderrStream.on('data', () => {
+        // Intentionally ignore or log elsewhere in future
+      })
+    }
 
     client
       .connect(transport)
@@ -66,7 +87,8 @@ function connectMcpServer$(
  */
 function fetchMcpTools$(
   client: Client,
-  serverName: string
+  serverName: string,
+  serverTimeout?: number
 ): Observable<{
   api: ChatCompletionTool[]
   executors: Record<string, McpToolEntry>
@@ -91,6 +113,7 @@ function fetchMcpTools$(
           type: 'mcp',
           serverName,
           toolName: tool.name,
+          timeout: serverTimeout,
         }
       }
 
@@ -127,7 +150,7 @@ export function connectMcpServers$(
       })
 
       const toolFetches$ = connections.map(({ client, serverName }) =>
-        fetchMcpTools$(client, serverName)
+        fetchMcpTools$(client, serverName, serversConfig[serverName].timeout)
       )
 
       return forkJoin(toolFetches$).pipe(
@@ -154,7 +177,8 @@ export function callMcpTool$(
   clients: McpClients,
   serverName: string,
   toolName: string,
-  args: Record<string, unknown>
+  args: Record<string, unknown>,
+  timeout?: number
 ): Observable<string> {
   const client = clients.get(serverName)
 
@@ -164,23 +188,49 @@ export function callMcpTool$(
     })
   }
 
-  return from(client.callTool({ name: toolName, arguments: args })).pipe(
-    map((result) => {
-      // MCP tool results can have multiple content items
-      // For now, concatenate text content
-      if (Array.isArray(result.content)) {
-        return result.content
-          .map((item) => {
-            if (item.type === 'text') {
-              return item.text
-            }
-            return JSON.stringify(item)
-          })
-          .join('\n')
-      }
-      return JSON.stringify(result)
-    })
-  )
+  return new Observable<string>((observer) => {
+    const abortController = new AbortController()
+
+    client
+      .callTool({ name: toolName, arguments: args }, undefined, {
+        signal: abortController.signal,
+        timeout: timeout,
+      })
+      .then((result) => {
+        // MCP tool results can have multiple content items
+        // For now, concatenate text content
+        if (Array.isArray(result.content)) {
+          const content = result.content
+            .map((item) => {
+              if (item.type === 'text') {
+                return item.text
+              }
+              return JSON.stringify(item)
+            })
+            .join('\n')
+          observer.next(content)
+        } else {
+          observer.next(JSON.stringify(result))
+        }
+        observer.complete()
+      })
+      .catch((err) => {
+        if (abortController.signal.aborted) {
+          observer.error(
+            new Error(
+              `MCP tool ${serverName}/${toolName} timed out and was cancelled`
+            )
+          )
+        } else {
+          observer.error(err)
+        }
+      })
+
+    // Teardown: abort the MCP request if Observable is unsubscribed
+    return () => {
+      abortController.abort()
+    }
+  })
 }
 
 /**

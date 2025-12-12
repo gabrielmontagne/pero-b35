@@ -15,6 +15,9 @@ import {
   of,
   switchMap,
   throwError,
+  timeout,
+  TimeoutError,
+  catchError,
 } from 'rxjs'
 import { createInputText$ } from './io'
 import { flog } from './log'
@@ -34,6 +37,7 @@ type RawTool = {
   command: string
   stdin_param?: string
   enabled?: boolean
+  timeout?: number
 }
 
 // Executor types for unified dispatch
@@ -41,6 +45,7 @@ export type BashToolEntry = {
   type: 'bash'
   command: string
   stdin_param?: string
+  timeout?: number
 }
 
 export type ToolExecutor = BashToolEntry | McpToolEntry
@@ -118,7 +123,13 @@ export function parseToolsConfig(config: string): ParsedConfig {
       // Skip disabled tools
       if (tool.enabled === false) continue
 
-      const { description, parameters = {}, command, stdin_param } = tool
+      const {
+        description,
+        parameters = {},
+        command,
+        stdin_param,
+        timeout,
+      } = tool
 
       const properties = Object.entries(parameters).reduce(
         (acc, [key, val]) => ({
@@ -142,7 +153,7 @@ export function parseToolsConfig(config: string): ParsedConfig {
       }
 
       result.api.push(apiTool)
-      result.executors[name] = { type: 'bash', command, stdin_param }
+      result.executors[name] = { type: 'bash', command, stdin_param, timeout }
     }
   }
 
@@ -207,18 +218,48 @@ function runMcpTool$(
   args: Record<string, unknown>,
   id: string
 ): Observable<ToolResult> {
-  return callMcpTool$(
+  const { serverName, toolName, timeout: timeoutMs } = executor
+
+  // Default MCP timeout: 5 minutes (300000ms)
+  const effectiveTimeout = timeoutMs ?? 300000
+
+  const execution$ = callMcpTool$(
     clients,
-    executor.serverName,
-    executor.toolName,
-    args
+    serverName,
+    toolName,
+    args,
+    effectiveTimeout
   ).pipe(
     map((content) => ({
       tool_call_id: id,
       content,
       role: 'tool' as const,
-    })),
-    flog(`Run MCP tool »${executor.serverName}/${executor.toolName}«`)
+    }))
+  )
+
+  return execution$.pipe(
+    timeout({
+      each: effectiveTimeout,
+      with: () =>
+        throwError(
+          () =>
+            new Error(
+              `MCP tool ${serverName}/${toolName} timed out after ${effectiveTimeout}ms`
+            )
+        ),
+    }),
+    catchError((err) => {
+      if (err instanceof TimeoutError) {
+        // Timeout already triggered abort via teardown
+        return of({
+          tool_call_id: id,
+          content: `MCP tool execution timed out after ${effectiveTimeout}ms`,
+          role: 'tool' as const,
+        })
+      }
+      throw err
+    }),
+    flog(`Run MCP tool »${serverName}/${toolName}«`)
   )
 }
 
@@ -227,7 +268,11 @@ function runBashCommand$(
   args: Record<string, string>,
   id: string
 ): Observable<ToolResult> {
-  const { command: commandTemplate, stdin_param } = toolConfig
+  const {
+    command: commandTemplate,
+    stdin_param,
+    timeout: timeoutMs,
+  } = toolConfig
 
   let stdinContent: string | undefined
   const commandArgs = { ...args }
@@ -239,29 +284,48 @@ function runBashCommand$(
 
   const command = formatCommand(commandTemplate, commandArgs)
 
-  return new Observable<ToolResult>((o) => {
-    const child = exec(command, (error, stdout, stderr) => {
-      if (error) {
-        const content = `Tool execution failed with exit code ${error.code}.\nSTDERR:\n${stderr}\nSTDOUT:\n${stdout}`
-        console.error(`exec error for command "${command}":\n${content}`)
-        o.next({
+  const execution$ = new Observable<ToolResult>((o) => {
+    const abortController = new AbortController()
+
+    const child = exec(
+      command,
+      { signal: abortController.signal },
+      (error, stdout, stderr) => {
+        if (error) {
+          // Check if it was aborted by timeout
+          if (error.signal === 'SIGTERM' || abortController.signal.aborted) {
+            const content = `Tool execution timed out and was killed.\nSTDERR:\n${stderr}\nSTDOUT:\n${stdout}`
+            console.error(`timeout for command "${command}"`)
+            o.next({
+              tool_call_id: id,
+              content: content,
+              role: 'tool',
+            })
+            o.complete()
+            return
+          }
+
+          const content = `Tool execution failed with exit code ${error.code}.\nSTDERR:\n${stderr}\nSTDOUT:\n${stdout}`
+          console.error(`exec error for command "${command}":\n${content}`)
+          o.next({
+            tool_call_id: id,
+            content: content,
+            role: 'tool',
+          })
+          o.complete()
+          return
+        }
+
+        const result: ToolResult = {
           tool_call_id: id,
-          content: content,
+          content: stdout,
           role: 'tool',
-        })
+        }
+
+        o.next(result)
         o.complete()
-        return
       }
-
-      const result: ToolResult = {
-        tool_call_id: id,
-        content: stdout,
-        role: 'tool',
-      }
-
-      o.next(result)
-      o.complete()
-    })
+    )
 
     if (stdinContent && child.stdin) {
       // Handle stdin errors
@@ -290,7 +354,42 @@ function runBashCommand$(
         }
       })
     }
-  }).pipe(flog(`Run commnd »${command}«`))
+
+    // Teardown: abort and kill child process if Observable is unsubscribed
+    return () => {
+      if (child.exitCode === null && !child.killed) {
+        abortController.abort()
+        child.kill('SIGTERM')
+      }
+    }
+  })
+
+  // Apply timeout if configured
+  if (timeoutMs && timeoutMs > 0) {
+    return execution$.pipe(
+      timeout({
+        each: timeoutMs,
+        with: () =>
+          throwError(
+            () => new Error(`Bash tool timed out after ${timeoutMs}ms`)
+          ),
+      }),
+      catchError((err) => {
+        if (err instanceof TimeoutError) {
+          // Timeout already triggered cleanup via teardown
+          return of({
+            tool_call_id: id,
+            content: `Tool execution timed out after ${timeoutMs}ms`,
+            role: 'tool' as const,
+          })
+        }
+        throw err
+      }),
+      flog(`Run command »${command}«`)
+    )
+  }
+
+  return execution$.pipe(flog(`Run command »${command}«`))
 }
 
 export function formatCommand(
