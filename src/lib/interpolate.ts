@@ -32,7 +32,7 @@ const audioFormatters = {
       format: extension.slice(1), // .wav -> wav
     },
   }),
-  
+
   gemini: (base64: string, mimeType: string) => ({
     inline_data: {
       mime_type: mimeType,
@@ -43,7 +43,10 @@ const audioFormatters = {
 
 const tag = /\[(?<type>\w+)\[(?<content>[^\]]+)\]\]/g
 
-export async function interpolate(text: string, gatewayConfig?: { audioFormat?: string }) {
+export async function interpolate(
+  text: string,
+  gatewayConfig?: { audioFormat?: string }
+) {
   const parts: ChatCompletionContentPart[] = []
 
   let match: RegExpExecArray | null
@@ -70,7 +73,9 @@ export async function interpolate(text: string, gatewayConfig?: { audioFormat?: 
 
   const remeainingText = text.slice(lastIndex)
   if (remeainingText) parts.push(packText(remeainingText))
-  return parts
+
+  // Filter out whitespace-only text parts - some APIs (Anthropic) reject empty text blocks
+  return parts.filter((part) => part.type !== 'text' || part.text.trim() !== '')
 }
 
 function packText(text: string) {
@@ -117,7 +122,10 @@ function isKnownTag(tag: string): tag is keyof typeof tagToParser {
   return tag in tagToParser
 }
 
-async function loadAudio(content: string, gatewayConfig?: { audioFormat?: string }) {
+async function loadAudio(
+  content: string,
+  gatewayConfig?: { audioFormat?: string }
+) {
   const isRemote = /^https?:/
   if (isRemote.test(content)) {
     // For remote URLs, we'd need to fetch and convert - for now, return error
