@@ -1,6 +1,8 @@
 = Pero-B35
 
-A lightweight CLI for comfortable command-line chat with LLMs. Thin wrapper around OpenAI-compatible APIs with tool calling, multimodal input, and MCP support.
+image::pero.png[Pero from Metropolis,width=600]
+
+A lightweight CLI for comfortable command-line chat with LLMs. Named after Pero, the robot detective from Rintaro's _Metropolis_ (2001). Thin wrapper around OpenAI-compatible APIs with tool calling, multimodal input, and MCP support.
 
 == Commands
 
