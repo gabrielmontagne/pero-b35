@@ -1,17 +1,131 @@
 = Pero-B35
 
-== `pero chat` cli.
+A lightweight CLI for comfortable command-line chat with LLMs. Thin wrapper around OpenAI-compatible APIs with tool calling, multimodal input, and MCP support.
 
-have your `.env` file on the root of the project.
+== Commands
+
+=== `pero chat`
+
+Process a text buffer as a conversation. The key idea: you work on a text buffer (a file, a Vim buffer, a TiddlyWiki tiddler) and pipe it through `pero chat`. The output includes the full conversation plus the new assistant response, so you can keep building on it over time.
+
+Simplest usage - just ask a question:
 
 ```
-OPENAI_API_KEY=sk-################################################
+What is 2+2?
 ```
+
+The response comes back with role markers, ready for follow-up:
+
+```
+What is 2+2?
+
+A>>
+2+2 equals 4.
+```
+
+Add `Q>>` for your next question, pipe again, repeat:
+
+```
+What is 2+2?
+
+A>>
+2+2 equals 4.
+
+Q>>
+And 3+3?
+```
+
+Role markers: `Q>>` user, `A>>` assistant, `S>>` system (optional, for custom instructions).
+
+```sh
+# from stdin
+cat conversation.txt | pero chat
+
+# from file
+pero chat -f conversation.txt
+
+# with tools enabled
+pero chat --default-tools -f task.txt
+
+# output only (just the assistant response, no conversation)
+pero chat -o -f conversation.txt
+```
+
+=== `pero serve`
+
+HTTP server exposing the same functionality. Useful for editor integrations or other tools.
+
+```sh
+pero serve                     # localhost:3535
+pero serve -H 0.0.0.0 -P 8080  # custom host/port
+```
+
+POST plain text to `/`, get plain text back. Query params override defaults:
+
+```sh
+curl -X POST http://localhost:3535/?model=gpt-4o \
+  -H "Content-Type: text/plain" \
+  -d "Q>>\nHello"
+```
+
+== Configuration
+
+Create a `.env` file in the project root with API keys for your chosen gateway(s).
+
+=== Supported Gateways
+
+[cols="1,2,2", options="header"]
+|===
+| Gateway | Environment Variable | Notes
+
+| `openrouter` (default)
+| `OPENROUTER_API_KEY`
+| Access to 100+ models via https://openrouter.ai[OpenRouter]
+
+| `openai`
+| `OPENAI_API_KEY`
+| Direct OpenAI API access
+
+| `anthropic`
+| `ANTHROPIC_API_KEY`
+| Claude models via https://anthropic.com[Anthropic]
+
+| `gemini`
+| `GEMINI_API_KEY`
+| Google's Gemini models (uses OpenAI-compatible endpoint)
+
+| `deepseek`
+| `DEEPSEEK_API_KEY`
+| https://deepseek.com[DeepSeek] models
+
+| `ollama`
+| _(none)_
+| Local models via http://127.0.0.1:11434[Ollama] (no API key needed)
+|===
+
+Example `.env` file:
+
+```
+OPENROUTER_API_KEY=sk-or-v1-...
+OPENAI_API_KEY=sk-...
+ANTHROPIC_API_KEY=sk-ant-...
+GEMINI_API_KEY=AI...
+DEEPSEEK_API_KEY=sk-...
+```
+
+Use `-g <gateway>` to select a gateway:
+
+```sh
+pero chat -g anthropic -m claude-sonnet-4-20250514
+pero chat -g gemini -m gemini-2.0-flash
+pero chat -g ollama -m llama3
+pero chat -g openrouter -m anthropic/claude-sonnet-4.5  # default
+```
+
+=== `chat` Options
 
 ```
 pero chat
-
-chat endpoints
 
 Options:
       --help                  Show help                                [boolean]
