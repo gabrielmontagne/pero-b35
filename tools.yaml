@@ -38,6 +38,12 @@ ask_for_supervisor_feedback:
     query: The question (with context) you'd like feedback on.
   command: echo "{{query}}" | vipe
 
+deep_search:
+  description: Search the web using Perplexity's advanced search model. Returns comprehensive results with sources and citations.
+  parameters:
+    query: The search query or question
+  command: echo "{{query}}" | pero chat -m perplexity/sonar-pro-search -o
+
 _mcp_servers:
   time:
     enabled: false
