@@ -42,37 +42,83 @@ const audioFormatters = {
 }
 
 const tag = /\[(?<type>\w+)\[(?<content>[^\]]+)\]\]/g
+const markdownImg = /!\[[^\]]*\]\((?<src>[^)]+)\)/g
+
+type Match = {
+  index: number
+  length: number
+  type: 'tag' | 'mdimg'
+  data: string
+}
+
+function collectMatches(text: string): Match[] {
+  const matches: Match[] = []
+
+  let m: RegExpExecArray | null
+  const tagRe = new RegExp(tag.source, 'g')
+  const mdRe = new RegExp(markdownImg.source, 'g')
+
+  while ((m = tagRe.exec(text)) !== null) {
+    const { type, content } = m.groups as { type: string; content: string }
+    if (isKnownTag(type)) {
+      matches.push({
+        index: m.index,
+        length: m[0].length,
+        type: 'tag',
+        data: m[0],
+      })
+    }
+  }
+
+  while ((m = mdRe.exec(text)) !== null) {
+    matches.push({
+      index: m.index,
+      length: m[0].length,
+      type: 'mdimg',
+      data: m.groups!.src,
+    })
+  }
+
+  return matches.sort((a, b) => a.index - b.index)
+}
 
 export async function interpolate(
   text: string,
   gatewayConfig?: { audioFormat?: string }
 ) {
   const parts: ChatCompletionContentPart[] = []
+  const matches = collectMatches(text)
 
-  let match: RegExpExecArray | null
   let lastIndex = 0
 
-  while ((match = tag.exec(text)) !== null) {
-    const { groups, index } = match
-    const fullTag = match[0]
-    const { type, content } = groups as { type: string; content: string }
-    const leadingText = text.slice(lastIndex, index)
+  for (const match of matches) {
+    const leadingText = text.slice(lastIndex, match.index)
     if (leadingText) parts.push(packText(leadingText))
 
-    if (isKnownTag(type)) {
-      const parser = tagToParser[type]
-      if (type === 'audio') {
-        parts.push(await parser(content, gatewayConfig))
-      } else {
-        parts.push(await parser(content))
+    if (match.type === 'mdimg') {
+      parts.push(await loadImage(match.data))
+    } else {
+      const tagMatch = tag.exec(match.data)
+      tag.lastIndex = 0
+      if (tagMatch) {
+        const { type, content } = tagMatch.groups as {
+          type: string
+          content: string
+        }
+        const parser = tagToParser[type as keyof typeof tagToParser]
+        if (type === 'audio') {
+          parts.push(await parser(content, gatewayConfig))
+        } else {
+          parts.push(await parser(content))
+        }
       }
     }
 
-    lastIndex = index + fullTag.length
+    lastIndex = match.index + match.length
   }
 
-  const remeainingText = text.slice(lastIndex)
-  if (remeainingText) parts.push(packText(remeainingText))
+  const remainingText = text.slice(lastIndex)
+  if (remainingText) parts.push(packText(remainingText))
 
   // Filter out whitespace-only text parts - some APIs (Anthropic) reject empty text blocks
   return parts.filter((part) => part.type !== 'text' || part.text.trim() !== '')
@@ -109,8 +155,8 @@ async function loadImage(content: string) {
 
   const fileContent = await fs.readFile(content)
   const base64 = fileContent.toString('base64')
-  const mimeType = path.extname(content).slice(1)
-  const dataUri = `data:image/${mimeType};base64,${base64}`
+  const mimeType = getImageMimeType(path.extname(content).toLowerCase())
+  const dataUri = `data:${mimeType};base64,${base64}`
   const result: ChatCompletionContentPartImage = {
     type: 'image_url',
     image_url: { url: dataUri },
@@ -157,6 +203,17 @@ async function loadAudio(
     console.error(`Error reading audio file at ${content}:`, error)
     throw error
   }
+}
+
+function getImageMimeType(extension: string): string {
+  const mimeMap: Record<string, string> = {
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.png': 'image/png',
+    '.gif': 'image/gif',
+    '.webp': 'image/webp',
+  }
+  return mimeMap[extension] || 'image/png'
 }
 
 function getAudioMimeType(extension: string): string {
