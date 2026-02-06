@@ -58,6 +58,7 @@ export interface ChatRunOptions {
   toolsPlacement: 'top' | 'bottom'
   maxTokens?: number
   reasoningEffort?: 'low' | 'medium' | 'high'
+  temperature?: number
 }
 
 export function resolveAutoToolsPath(
@@ -94,6 +95,7 @@ export function runChat$(
     toolsPlacement,
     maxTokens,
     reasoningEffort,
+    temperature,
   } = options
 
   const defaultToolsPath = path.join(__dirname, '..', '..', 'tools.yaml')
@@ -126,6 +128,7 @@ export function runChat$(
                 includeReasoning,
                 maxTokens,
                 reasoningEffort,
+                temperature,
               }),
 
               recombineWithOriginal({

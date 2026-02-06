@@ -48,6 +48,8 @@ function parseQueryParams(url: string): Partial<ChatRunOptions> {
     options.toolsPlacement = params.get('tools-placement') as any
   if (params.has('default-tools'))
     options.defaultTools = params.get('default-tools') === 'true'
+  if (params.has('temperature'))
+    options.temperature = parseFloat(params.get('temperature')!)
 
   const tools = params.getAll('tools').filter(Boolean)
   if (tools.length > 0) options.tools = tools

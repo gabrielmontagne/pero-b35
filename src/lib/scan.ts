@@ -20,6 +20,7 @@ export function scanSession({
   includeReasoning,
   maxTokens,
   reasoningEffort,
+  temperature,
   depth = 0,
 }: {
   tools: ToolsConfig | null
@@ -33,6 +34,7 @@ export function scanSession({
   includeReasoning?: boolean
   maxTokens?: number
   reasoningEffort?: 'low' | 'medium' | 'high'
+  temperature?: number
 }): MonoTypeOperatorFunction<Session> {
   return (source$) =>
     source$.pipe(
@@ -47,6 +49,7 @@ export function scanSession({
             }),
             ...(reasoningEffort && { reasoning: { effort: reasoningEffort } }),
             ...(maxTokens && { max_tokens: maxTokens }),
+            ...(temperature !== undefined && { temperature }),
             ...(tools && {
               tools: tools.api,
               tool_choice: 'auto',
@@ -84,6 +87,7 @@ export function scanSession({
                   gatewayConfig,
                   includeReasoning,
                   reasoningEffort,
+                  temperature,
                 })
               )
             }

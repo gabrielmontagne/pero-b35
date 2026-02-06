@@ -27,6 +27,7 @@ interface ChatOptions extends Options {
   toolsPlacement: string
   maxTokens: number
   reasoningEffort: string
+  temperature: number
 }
 
 class ChatCommand<U extends ChatOptions> implements CommandModule<{}, U> {
@@ -119,6 +120,12 @@ class ChatCommand<U extends ChatOptions> implements CommandModule<{}, U> {
       describe: 'maximum number of tokens to generate',
     })
 
+    args.option('temperature', {
+      number: true,
+      alias: 'T',
+      describe: 'sampling temperature (omitted if not specified)',
+    })
+
     return args as Argv<U>
   }
 
@@ -136,6 +143,7 @@ class ChatCommand<U extends ChatOptions> implements CommandModule<{}, U> {
       toolsPlacement,
       maxTokens,
       reasoningEffort,
+      temperature,
     } = args
 
     const options: ChatRunOptions = {
@@ -150,6 +158,7 @@ class ChatCommand<U extends ChatOptions> implements CommandModule<{}, U> {
       toolsPlacement: toolsPlacement as any,
       maxTokens,
       reasoningEffort: reasoningEffort as any,
+      temperature,
     }
 
     const input$ = createInputText$(file)
