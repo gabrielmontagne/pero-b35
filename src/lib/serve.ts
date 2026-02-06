@@ -11,6 +11,7 @@ const gateways = [
   'anthropic',
   'openai',
   'deepseek',
+  'moonshot',
 ] as const
 
 interface ServeOptions extends Options {

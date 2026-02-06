@@ -39,6 +39,11 @@ const gateways = {
     apiKey: process.env.DEEPSEEK_API_KEY as string,
     audioFormat: 'openai' as const,
   },
+  moonshot: {
+    baseURL: 'https://api.moonshot.ai/v1',
+    apiKey: process.env.MOONSHOT_API_KEY as string,
+    audioFormat: 'openai' as const,
+  },
 }
 
 export interface ChatRunOptions {
