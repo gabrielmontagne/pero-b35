@@ -12,7 +12,6 @@ import {
   TimeoutError,
 } from 'rxjs'
 
-// Config types (Phase 1: stdio only)
 export type McpServerConfig = {
   command: string
   args?: string[]
@@ -22,7 +21,6 @@ export type McpServerConfig = {
 
 export type McpServersConfig = Record<string, McpServerConfig>
 
-// Runtime types
 export type McpClients = Map<string, Client>
 
 export type McpToolEntry = {
@@ -38,9 +36,6 @@ export type McpToolsResult = {
   clients: McpClients
 }
 
-/**
- * Connect to a single MCP server via stdio transport
- */
 function connectMcpServer$(
   serverName: string,
   config: McpServerConfig
@@ -58,12 +53,9 @@ function connectMcpServer$(
       { capabilities: {} }
     )
 
-    // Swallow MCP server stderr to avoid corrupting chat output
     const stderrStream = (transport as any).stderr
     if (stderrStream && typeof stderrStream.on === 'function') {
-      stderrStream.on('data', () => {
-        // Intentionally ignore or log elsewhere in future
-      })
+      stderrStream.on('data', () => {})
     }
 
     client
@@ -82,9 +74,6 @@ function connectMcpServer$(
   })
 }
 
-/**
- * Fetch tools from a connected MCP client and convert to OpenAI format
- */
 function fetchMcpTools$(
   client: Client,
   serverName: string,
@@ -122,9 +111,6 @@ function fetchMcpTools$(
   )
 }
 
-/**
- * Connect to all MCP servers defined in config and fetch their tools
- */
 export function connectMcpServers$(
   serversConfig: McpServersConfig
 ): Observable<McpToolsResult> {
@@ -170,9 +156,6 @@ export function connectMcpServers$(
   )
 }
 
-/**
- * Call a tool on an MCP server
- */
 export function callMcpTool$(
   clients: McpClients,
   serverName: string,
@@ -197,8 +180,6 @@ export function callMcpTool$(
         timeout: timeout,
       })
       .then((result) => {
-        // MCP tool results can have multiple content items
-        // For now, concatenate text content
         if (Array.isArray(result.content)) {
           const content = result.content
             .map((item) => {
@@ -226,16 +207,12 @@ export function callMcpTool$(
         }
       })
 
-    // Teardown: abort the MCP request if Observable is unsubscribed
     return () => {
       abortController.abort()
     }
   })
 }
 
-/**
- * Disconnect all MCP servers
- */
 export function disconnectMcpServers$(clients: McpClients): Observable<void> {
   if (clients.size === 0) {
     return of(undefined)
