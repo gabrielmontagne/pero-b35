@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Pero-B35 is a TypeScript CLI tool that provides a thin wrapper around OpenAI-compatible APIs for comfortable command-line chat interactions. It's built with RxJS for reactive programming and supports multiple AI gateways (OpenAI, OpenRouter, Anthropic, Gemini, Ollama, DeepSeek).
+Pero-B35 is a TypeScript CLI tool that provides a thin wrapper around OpenAI-compatible APIs for comfortable command-line chat interactions. It's built with RxJS for reactive programming and supports multiple AI gateways (OpenAI, OpenRouter, Anthropic, Gemini, Ollama, DeepSeek, Moonshot).
 
 ## Key Commands
 
@@ -88,6 +88,7 @@ OPENROUTER_API_KEY=...
 ANTHROPIC_API_KEY=...
 GEMINI_API_KEY=...
 DEEPSEEK_API_KEY=...
+MOONSHOT_API_KEY=...
 ```
 
 ## Implementation preferences

@@ -103,6 +103,10 @@ Create a `.env` file in the project root with API keys for your chosen gateway(s
 | `ollama`
 | _(none)_
 | Local models via http://127.0.0.1:11434[Ollama] (no API key needed)
+
+| `moonshot`
+| `MOONSHOT_API_KEY`
+| Kimi models via https://platform.moonshot.cn[Moonshot AI]
 |===
 
 Example `.env` file:
@@ -113,6 +117,7 @@ OPENAI_API_KEY=sk-...
 ANTHROPIC_API_KEY=sk-ant-...
 GEMINI_API_KEY=AI...
 DEEPSEEK_API_KEY=sk-...
+MOONSHOT_API_KEY=sk-...
 ```
 
 Use `-g <gateway>` to select a gateway:

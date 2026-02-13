@@ -20,12 +20,6 @@ read_web_page:
     url: The URL of the web page to read
   command: elinks --dump "{{url}}"
 
-search_web:
-  description: Search the web for a given query
-  parameters:
-    query: The search query
-  command: ddgr -C -x --np --unsafe -n 25 "{{query}}"
-
 read_pdf_file:
   description: Read the contents of a pdf file
   parameters:
@@ -38,7 +32,7 @@ ask_for_supervisor_feedback:
     query: The question (with context) you'd like feedback on.
   command: echo "{{query}}" | vipe
 
-deep_search:
+search:
   description: Search the web using Perplexity's advanced search model. Returns comprehensive results with sources and citations.
   parameters:
     query: The search query or question
@@ -50,7 +44,7 @@ _mcp_servers:
     command: uvx
     args: [mcp-server-time, --local-timezone=Europe/Berlin]
   deep-research:
-    enabled: false
+    enabled: true
     command: deep-research-gemini
     args: [--report-dir, './transient']
     timeout: 1200000 # 20 minutes for deep research operations
