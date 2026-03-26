@@ -44,6 +44,11 @@ const gateways = {
     apiKey: process.env.MOONSHOT_API_KEY as string,
     audioFormat: 'openai' as const,
   },
+  minimax: {
+    baseURL: 'https://api.minimax.io/v1',
+    apiKey: process.env.MINIMAX_API_KEY as string,
+    audioFormat: 'openai' as const,
+  },
 }
 
 export interface ChatRunOptions {

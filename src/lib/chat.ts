@@ -11,6 +11,7 @@ const gateways = [
   'openai',
   'deepseek',
   'moonshot',
+  'minimax',
 ] as const
 
 interface ChatOptions extends Options {
