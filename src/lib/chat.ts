@@ -104,7 +104,7 @@ class ChatCommand<U extends ChatOptions> implements CommandModule<{}, U> {
 
     args.option('include-tool', {
       string: true,
-      default: 'none',
+      default: 'result',
       choices: ['none', 'call', 'result'],
       describe: 'include @@.tools block with tool calls/results',
     })
