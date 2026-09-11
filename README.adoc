@@ -53,6 +53,34 @@ pero chat --default-tools -f task.txt
 pero chat -o -f conversation.txt
 ```
 
+=== `pero complete`
+
+Raw text completion. No chat, no roles, no template — the model just continues your buffer. This is for *base* models: pretrained weights with no post-training, which behave like a pure text predictor rather than an assistant.
+
+```sh
+# continue a buffer
+pero complete -f draft.txt
+
+# from stdin, unhinged
+echo -n "The following is an excerpt from a lost 1974 manual on" | pero complete -T 1.2
+
+# just the continuation, don't echo the prompt back
+pero complete -o -f draft.txt
+
+# stop at a marker
+pero complete -f draft.txt --stop $'\n\n' --max-tokens 200
+```
+
+By default the prompt is echoed back followed by the continuation, so you can pipe the same buffer through repeatedly and watch it grow. `-o` gives you the continuation alone.
+
+Lines starting with `%%%` are stripped before sending, same as `pero chat`. `__START__` / `__END__` markers are honoured — only the region between them is completed.
+
+Options: `-m/--model`, `-g/--gateway`, `-p/--preamble`, `-o/--output-only`, `--max-tokens` (default 512), `-T/--temperature` (default 1), `--top-p`, `--frequency-penalty`, `--presence-penalty`, `--stop`, `-n`, `--seed`.
+
+Only gateways that expose `/v1/completions` are offered: `featherless` (default), `openrouter`, `openai`, `deepseek`, `ollama`.
+
+NOTE: as of early 2026 the large hosted base models are mostly gone — Hyperbolic decommissioned its Llama-3.1-405B-Base endpoint and OpenRouter carries no base models at all. Featherless is the remaining serverless host with real base weights: `mistralai/Mistral-Small-24B-Base-2501` (the default), `Qwen/Qwen3-14B-Base`, `marin-community/marin-8b-base`, `ibm-granite/granite-7b-base`.
+
 === `pero serve`
 
 HTTP server exposing the same functionality. Useful for editor integrations or other tools.
@@ -107,6 +135,10 @@ Create a `.env` file in the project root with API keys for your chosen gateway(s
 | `moonshot`
 | `MOONSHOT_API_KEY`
 | Kimi models via https://platform.moonshot.cn[Moonshot AI]
+
+| `featherless`
+| `FEATHERLESS_API_KEY`
+| https://featherless.ai[Featherless] - serverless HuggingFace weights, including *base* (non-instruct) models. Used by `pero complete`.
 |===
 
 Example `.env` file:
@@ -118,6 +150,7 @@ ANTHROPIC_API_KEY=sk-ant-...
 GEMINI_API_KEY=AI...
 DEEPSEEK_API_KEY=sk-...
 MOONSHOT_API_KEY=sk-...
+FEATHERLESS_API_KEY=rc_...
 ```
 
 Use `-g <gateway>` to select a gateway:

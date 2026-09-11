@@ -22,6 +22,9 @@ Pero-B35 is a TypeScript CLI tool that provides a thin wrapper around OpenAI-com
 - `npx pero chat -t <tools.yaml>` - Load additional tools configuration
 - `npx pero chat -o` - Output only mode (no chat formatting)
 - `npx pero chat -r` - Include reasoning in output
+- `npx pero complete` - Raw text completion (base models, no chat template)
+- `npx pero complete -g featherless -m mistralai/Mistral-Small-24B-Base-2501` - default base-model setup
+- `npx pero complete -o -T 1.2 -f draft.txt` - continuation only, high temperature
 
 ## Architecture
 
@@ -30,6 +33,10 @@ Pero-B35 is a TypeScript CLI tool that provides a thin wrapper around OpenAI-com
 **Entry Point** (`src/index.ts`): Handles environment setup and CLI routing using yargs.
 
 **Chat Command** (`src/lib/chat.ts`): Main command implementation that orchestrates the entire chat flow using RxJS streams. Supports multiple AI gateways and handles tool configuration.
+
+**Complete Command** (`src/lib/complete.ts` + `src/lib/run-complete.ts`): Raw text completion against `/v1/completions` for base (non-instruct) models. No roles, no chat template, no tools — prompt in, continuation out. Restricted to gateways flagged `completions: true`.
+
+**Gateway Registry** (`src/lib/gateways.ts`): Single source of truth for gateway base URLs, API keys, audio formats, and the `completions` capability flag. Both `chat` and `complete` derive their `--gateway` choices from it — add a gateway here and it appears everywhere.
 
 **Session Management** (`src/lib/scan.ts`): Manages chat completions with recursive tool calling support. Handles the interaction with OpenAI-compatible APIs and tool execution loops.
 

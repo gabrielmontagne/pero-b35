@@ -8,48 +8,10 @@ import {
   startEndSplit,
 } from './restructure'
 import { scanSession } from './scan'
+import { gatewayConfigs } from './gateways'
 import { readToolsConfig$, ToolsConfig } from './tools'
 
-const gateways = {
-  ollama: {
-    baseURL: 'http://127.0.0.1:11434/v1',
-    apiKey: 'ollama',
-    audioFormat: 'openai' as const,
-  },
-  openrouter: {
-    baseURL: 'https://openrouter.ai/api/v1',
-    apiKey: process.env.OPENROUTER_API_KEY as string,
-    audioFormat: 'openai' as const,
-  },
-  gemini: {
-    baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/',
-    apiKey: process.env.GEMINI_API_KEY as string,
-    audioFormat: 'gemini' as const,
-  },
-  anthropic: {
-    apiKey: process.env.ANTHROPIC_API_KEY as string,
-    baseURL: 'https://api.anthropic.com/v1/',
-    audioFormat: 'openai' as const,
-  },
-  openai: {
-    audioFormat: 'openai' as const,
-  },
-  deepseek: {
-    baseURL: 'https://api.deepseek.com/beta',
-    apiKey: process.env.DEEPSEEK_API_KEY as string,
-    audioFormat: 'openai' as const,
-  },
-  moonshot: {
-    baseURL: 'https://api.moonshot.ai/v1',
-    apiKey: process.env.MOONSHOT_API_KEY as string,
-    audioFormat: 'openai' as const,
-  },
-  minimax: {
-    baseURL: 'https://api.minimax.io/v1',
-    apiKey: process.env.MINIMAX_API_KEY as string,
-    audioFormat: 'openai' as const,
-  },
-}
+const gateways = gatewayConfigs
 
 export interface ChatRunOptions {
   model: string
