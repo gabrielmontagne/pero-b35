@@ -53,6 +53,19 @@ pero chat --default-tools -f task.txt
 pero chat -o -f conversation.txt
 ```
 
+=== `pero export` / `pero import`
+
+Pure text transforms between a flat chat and a pi session JSONL. No API, no gateway. The buffer stays the editing surface; pi is just where the conversation can be resumed.
+
+```sh
+pero export -f conv.txt > session.jsonl
+pero import -f session.jsonl
+```
+
+Vim, same reflex: `:%!pero export`, resume with `pi --session`, then `:%!pero import` and `:%!pero chat` again.
+
+Lossy on purpose. `S>>`, pi's system prompt, and tool infra stay on their own side. `@@.tools` rides along as text and is not re-run. Import follows the current leaf (other branches drop) and ends on `Q>>` when the last turn is the assistant's. Exported assistant turns are tagged `provider: pero`, so `pi --session` falls back to your default model unless you pass `--model`.
+
 === `pero serve`
 
 HTTP server exposing the same functionality. Useful for editor integrations or other tools.
