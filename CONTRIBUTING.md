@@ -22,6 +22,10 @@ Pero-B35 is a TypeScript CLI tool that provides a thin wrapper around OpenAI-com
 - `npx pero chat -t <tools.yaml>` - Load additional tools configuration
 - `npx pero chat -o` - Output only mode (no chat formatting)
 - `npx pero chat -r` - Include reasoning in output
+- `npx pero export` - Flat chat to pi session JSONL (`-f` file, else stdin; `-m` model label)
+- `npx pero import` - Pi session JSONL back to a flat chat (`-f` file, else stdin)
+
+`export` / `import` are pure text transforms. They do not call a gateway. See `docs/spec-pi-interop.md`.
 
 ## Architecture
 
@@ -33,7 +37,9 @@ Pero-B35 is a TypeScript CLI tool that provides a thin wrapper around OpenAI-com
 
 **Session Management** (`src/lib/scan.ts`): Manages chat completions with recursive tool calling support. Handles the interaction with OpenAI-compatible APIs and tool execution loops.
 
-**Text Processing** (`src/lib/restructure.ts`): Handles parsing and formatting of chat sessions. Supports special syntax for role headers (S>>, Q>>, A>>) and **START**/**END** markers for content boundaries. Lines starting with `%%%` are treated as comments and filtered out during processing.
+**Text Processing** (`src/lib/restructure.ts`): Handles parsing and formatting of chat sessions. Supports special syntax for role headers (S>>, Q>>, A>>) and **START**/**END** markers for content boundaries. Lines starting with `%%%` are treated as comments and filtered out during processing. `parseFlat()` is the sync parser `export` uses; it does not interpolate.
+
+**Pi interop** (`src/lib/session-codec.ts`, `export.ts`, `import.ts`): Maps a pero `Session` to and from pi session JSONL. This is the only module that knows pi's wire shape. It does not call `pi-ai`.
 
 **Tools System** (`src/lib/tools.ts`): Dynamic tool system that converts YAML tool definitions into OpenAI function calling format. Executes shell commands with parameter interpolation using {{parameter}} syntax.
 

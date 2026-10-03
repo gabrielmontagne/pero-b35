@@ -30,6 +30,24 @@ const visibleRoles = new Set<ChatCompletionRole>([
 ])
 const impliedInitialRole = new Set<ChatCompletionRole>(['system', 'user'])
 
+export function parseFlat(text: string): Session {
+  const { result, firstKey } = pair(text)
+  if (result[0]) result[0].key = firstKey == 'Q' ? 'S' : 'Q'
+  const session: Session = []
+
+  for (const next of result) {
+    if (!next.content) continue
+    if (next.key == 'S') {
+      session.push({ role: 'system', content: next.content })
+    } else if (next.key == 'Q') {
+      session.push({ role: 'user', content: next.content })
+    } else if (next.key == 'A') {
+      session.push({ role: 'assistant', content: next.content })
+    }
+  }
+  return session
+}
+
 export async function parse(
   text: string,
   gatewayConfig?: { audioFormat?: string }
